@@ -9,7 +9,7 @@ import {
 import { useToast } from '../lib/ToastContext';
 import { useLang } from '../lib/LangContext';
 
-const EMPTY_PRODUCT = { name: '', type: 'course', image: '', price: 0, price_quarter: '', price_year: '', description: '', body: '', stock: 100, status: 'active' };
+const EMPTY_PRODUCT = { name: '', type: 'course', image: '', price: 0, price_quarter: '', price_year: '', description: '', body: '', sold_label: '', status: 'active' };
 
 export default function Admin() {
   const [tab, setTab] = useState('products');
@@ -61,7 +61,6 @@ function ProductsTab() {
         price: Number(form.price) || 0,
         price_quarter: form.price_quarter === '' || form.price_quarter == null ? null : Number(form.price_quarter),
         price_year: form.price_year === '' || form.price_year == null ? null : Number(form.price_year),
-        stock: Number(form.stock) || 0,
       };
       if (id) {
         await updateProduct(id, payload);
@@ -118,7 +117,7 @@ function ProductsTab() {
       {editing && <ProductForm initial={editing === 'new' ? EMPTY_PRODUCT : editing} onSave={handleSave} onCancel={() => setEditing(null)} />}
       <table>
         <thead>
-          <tr><th></th><th>{t('th_col_product')}</th><th>{t('th_col_type')}</th><th>{t('th_col_price')}</th><th>{t('th_col_stock_sold')}</th><th>{t('th_col_status')}</th><th>{t('th_col_actions')}</th></tr>
+          <tr><th></th><th>{t('th_col_product')}</th><th>{t('th_col_type')}</th><th>{t('th_col_price')}</th><th>{t('th_col_sold')}</th><th>{t('th_col_status')}</th><th>{t('th_col_actions')}</th></tr>
         </thead>
         <tbody>
           {products.map((p) => (
@@ -133,7 +132,7 @@ function ProductsTab() {
               <td>{p.name}</td>
               <td>{p.type}</td>
               <td className="mono">${p.price}</td>
-              <td className="mono">{p.stock} / {p.sold}</td>
+              <td className="mono">{p.sold_label || '—'}</td>
               <td><span className={`pill ${p.status === 'off' ? 'off' : ''}`}>{p.status === 'off' ? t('status_off') : t('status_active')}</span></td>
               <td className="row-actions">
                 <div className="icon-btn" onClick={() => setEditing(p)}>✎</div>
@@ -198,7 +197,7 @@ function ProductForm({ initial, onSave, onCancel }) {
             <div className="field"><label>{t('field_price_year2')}</label><input type="number" value={form.price_year || ''} onChange={set('price_year')} /></div>
           </>
         )}
-        <div className="field"><label>{t('field_stock2')}</label><input type="number" value={form.stock} onChange={set('stock')} /></div>
+        <div className="field"><label>{t('field_sold_label2')}</label><input value={form.sold_label || ''} onChange={set('sold_label')} placeholder="500+" /></div>
         <div className="field" style={{ gridColumn: '1/-1' }}><label>{t('field_desc_card2')}</label><input value={form.description || ''} onChange={set('description')} /></div>
         <div className="field" style={{ gridColumn: '1/-1' }}><label>{t('field_body_detail2')}</label><textarea value={form.body || ''} onChange={set('body')} /></div>
       </div>
@@ -222,7 +221,7 @@ function ArticlesTab() {
   async function reload() {
     const [prods, { data: arts }] = await Promise.all([
       fetchProducts(),
-      supabase.from('articles').select('*, products(name)').order('published_at', { ascending: false }),
+      supabase.from('articles').select('*, products(name)').order('published_at', { ascending: false }).order('created_at', { ascending: false }),
     ]);
     setProducts(prods.filter((p) => p.type === 'subscription'));
     setArticles(arts || []);

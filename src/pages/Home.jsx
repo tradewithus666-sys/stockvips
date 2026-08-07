@@ -39,8 +39,6 @@ export default function Home() {
 
   if (loading) return <div className="loading-screen">{t('loading')}</div>;
 
-  const activeCount = products.filter((p) => p.status === 'active').length;
-
   return (
     <div>
       <div className="hero">
@@ -48,9 +46,6 @@ export default function Home() {
           <div className="hero-eyebrow">◆ {t('official_badge')}</div>
           <h1 className="display">{t('hero_title')}</h1>
           <p>{t('hero_desc')}</p>
-          <div className="hero-stats">
-            <div className="hero-stat"><b>{activeCount}</b><span>{t('stat_products')}</span></div>
-          </div>
         </div>
       </div>
 
@@ -84,9 +79,11 @@ export default function Home() {
                   <div className="card-body">
                     <h3>{p.name}</h3>
                     <p>{p.description}</p>
-                    <div className="card-meta">
-                      <span>{t('card_stock')} <b>{p.stock}</b></span><span>{t('card_sold')} <b>{p.sold}</b></span>
-                    </div>
+                    {p.sold_label && (
+                      <div className="card-meta">
+                        <span>{t('card_sold')} <b>{p.sold_label}</b></span>
+                      </div>
+                    )}
                     <div className="card-foot">
                       <div className="price">
                         ${p.price}

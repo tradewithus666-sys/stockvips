@@ -59,6 +59,24 @@ export default function App() {
     }
   }, [kicked, clearKicked, nav, showToast, t]);
 
+  // ---------- App 切到背景时模糊画面 ----------
+  // 重要提醒：网页没有任何 API 能侦测或阻挡「使用者按下截图」这个 OS 层级的动作，
+  // 这段做的是退而求其次的防护——侦测「App 被切到背景」（滑上去看多工预览、切到别的 App），
+  // 在这个瞬间把画面模糊，减少内容出现在系统多工预览缩图里的机会。对真正的截图没有帮助。
+  useEffect(() => {
+    function blurOn() { document.body.classList.add('privacy-blur'); }
+    function blurOff() { document.body.classList.remove('privacy-blur'); }
+    function onVisibility() { if (document.hidden) blurOn(); else blurOff(); }
+    window.addEventListener('blur', blurOn);
+    window.addEventListener('focus', blurOff);
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      window.removeEventListener('blur', blurOn);
+      window.removeEventListener('focus', blurOff);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, []);
+
   if (loading) return <div className="loading-screen">{t('loading')}</div>;
 
   const showWatermark = !!profile && (

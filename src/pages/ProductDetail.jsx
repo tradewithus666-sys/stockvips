@@ -120,10 +120,11 @@ export default function ProductDetail() {
             ? <img className="detail-cover-img" src={product.image} alt="" />
             : <div className="badge-icon lg">🏅</div>}
           <div className="official">{t('official_badge')}</div>
-          <div className="stats">
-            <div><b>{product.stock}</b>{t('detail_stock')}</div>
-            <div><b>{product.sold}</b>{t('detail_sold')}</div>
-          </div>
+          {product.sold_label && (
+            <div className="stats">
+              <div><b>{product.sold_label}</b>{t('detail_sold')}</div>
+            </div>
+          )}
         </div>
 
         <div className="detail-info">
