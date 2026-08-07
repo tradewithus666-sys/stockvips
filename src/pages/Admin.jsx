@@ -154,7 +154,7 @@ function ProductsTab() {
               </td>
               <td>{p.name}</td>
               <td>{p.type}</td>
-              <td className="mono">${p.price}</td>
+              <td className="mono">${p.price} HKD</td>
               <td className="mono">{p.sold_label || '—'}</td>
               <td><span className={`pill ${p.status === 'off' ? 'off' : ''}`}>{p.status === 'off' ? t('status_off') : t('status_active')}</span></td>
               <td className="row-actions">

@@ -134,12 +134,12 @@ export default function MemberCenter() {
             <div className="dur-grid">
               {['month', 'quarter', 'year'].map((d) => (
                 <div key={d} className={`dur-opt ${d === 'year' ? 'wide' : ''} ${renewDuration === d ? 'active' : ''}`} onClick={() => setRenewDuration(d)}>
-                  {DUR_LABEL[d]} <small>${getDurationPrice(pm.products, d)}</small>
+                  {DUR_LABEL[d]} <small>${getDurationPrice(pm.products, d)} HKD</small>
                 </div>
               ))}
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
-              <div className="price" style={{ fontSize: 20 }}>${getDurationPrice(pm.products, renewDuration)}.00</div>
+              <div className="price" style={{ fontSize: 20 }}>${getDurationPrice(pm.products, renewDuration)}.00 HKD</div>
               <button className="btn btn-amber btn-sm" disabled={busy} onClick={() => confirmRenew(pm)}>{t('confirm_renew_btn')}</button>
             </div>
           </div>
@@ -169,7 +169,7 @@ export default function MemberCenter() {
         <div className="who"><b>{profile?.email}</b><span>{t('joined_label')}{profile?.created_at?.slice(0, 10)}</span></div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           <button className="btn btn-amber btn-sm" onClick={() => nav('/wallet')}>
-            💰 {t('my_wallet')} <span style={{ opacity: 0.8, fontWeight: 600 }}>· {(profile?.balance ?? 0).toFixed(2)} USDT</span>
+            💰 {t('my_wallet')} <span style={{ opacity: 0.8, fontWeight: 600 }}>· {(profile?.balance ?? 0).toFixed(2)} HKD</span>
           </button>
           <div className="session-box">
             <span className="dotlive"></span>

@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../lib/AuthContext';
 import { useLang } from '../lib/LangContext';
-import { formatPublishedAt } from '../lib/format';
+import { formatPublishedAt, linkify } from '../lib/format';
 
 export default function ArticleReader() {
   const { id } = useParams();
@@ -50,11 +50,12 @@ export default function ArticleReader() {
               ? <img key={i} className="inline-img" src={b.value} alt="" loading="lazy" />
               : b.type === 'pdf'
               ? (
-                <div key={i}>
+                <div key={i} className="pdf-wrap">
                   <iframe className="inline-pdf" src={`https://docs.google.com/viewer?url=${encodeURIComponent(b.value)}&embedded=true`} title={`pdf-${i}`} />
+                  <div className="pdf-block-corner" />
                 </div>
               )
-              : <div key={i} className="body-text">{b.value}</div>
+              : <div key={i} className="body-text">{linkify(b.value)}</div>
           )}
         </div>
         {!owned && (

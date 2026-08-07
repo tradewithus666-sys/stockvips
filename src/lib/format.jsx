@@ -6,3 +6,16 @@ export function formatPublishedAt(article) {
   const pad = (n) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
+
+// 把纯文字里的网址自动转成可点击连结，新分页打开
+const URL_SPLIT_RE = /(https?:\/\/[^\s]+)/g;
+export function linkify(text) {
+  if (!text) return text;
+  const parts = String(text).split(URL_SPLIT_RE);
+  return parts.map((part, i) =>
+    /^https?:\/\//i.test(part)
+      ? <a key={i} href={part} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--amber)', textDecoration: 'underline', wordBreak: 'break-all' }}>{part}</a>
+      : part
+  );
+}
+

@@ -86,7 +86,7 @@ export default function Home() {
                     )}
                     <div className="card-foot">
                       <div className="price">
-                        ${p.price}
+                        ${p.price} HKD
                         <span>{p.type === 'course' ? t('price_suffix_course') : t('price_suffix_month')}</span>
                       </div>
                       {p.status === 'off'

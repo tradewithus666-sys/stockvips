@@ -52,8 +52,8 @@ export default function Wallet() {
         <div className="wbc-icon">💳</div>
         <div>
           <div className="wbc-label">{t('available_balance')}</div>
-          <div className="wbc-amount">{(profile?.balance ?? 0).toFixed(2)}</div>
-          <div className="wbc-usd">≈ ${(profile?.balance ?? 0).toFixed(2)} USD</div>
+          <div className="wbc-amount">{(profile?.balance ?? 0).toFixed(2)} HKD</div>
+          <div className="wbc-usd">≈ ${(profile?.balance ?? 0).toFixed(2)} HKD</div>
         </div>
       </div>
 

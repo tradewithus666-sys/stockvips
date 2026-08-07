@@ -5,7 +5,7 @@ import { fetchProductById, fetchArticlesByProduct, purchaseWithBalance } from '.
 import { useAuth } from '../lib/AuthContext';
 import { useToast } from '../lib/ToastContext';
 import { useLang } from '../lib/LangContext';
-import { formatPublishedAt } from '../lib/format';
+import { formatPublishedAt, linkify } from '../lib/format';
 
 const DUR_MULT = { month: 1, quarter: 2.7, year: 9 };
 
@@ -141,13 +141,13 @@ export default function ProductDetail() {
               <>
                 {isCourse ? (
                   <>
-                    <div className="price-row"><b>${price}.00</b><span>{t('per_lifetime')}</span></div>
+                    <div className="price-row"><b>${price}.00 HKD</b><span>{t('per_lifetime')}</span></div>
                     <div className="lifetime-badge">{t('lifetime_badge')}</div>
                   </>
                 ) : (
                   <>
                     <div className="price-row">
-                      <b>${price}.00</b>
+                      <b>${price}.00 HKD</b>
                       <span>／{DUR_LABEL[duration]}</span>
                     </div>
                     <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 12, fontWeight: 600 }}>
@@ -160,7 +160,7 @@ export default function ProductDetail() {
                           className={`dur-opt ${d === 'year' ? 'wide' : ''} ${duration === d ? 'active' : ''}`}
                           onClick={() => setDuration(d)}
                         >
-                          {DUR_LABEL[d]} <small>${getDurationPrice(product, d)}</small>
+                          {DUR_LABEL[d]} <small>${getDurationPrice(product, d)} HKD</small>
                         </div>
                       ))}
                     </div>
@@ -175,7 +175,7 @@ export default function ProductDetail() {
                       <div className="pmc-title">{t('pay_balance_title')}</div>
                       <div className="pmc-sub">{t('pay_balance_sub')}</div>
                     </div>
-                    <div className="pmc-balance">${(profile?.balance ?? 0).toFixed(2)}</div>
+                    <div className="pmc-balance">${(profile?.balance ?? 0).toFixed(2)} HKD</div>
                   </div>
                   <div className={`pay-method-card ${payMethod === 'usdt' ? 'active' : ''}`} onClick={() => setPayMethod('usdt')}>
                     <div className="pmc-icon">💠</div>
@@ -221,7 +221,7 @@ export default function ProductDetail() {
         <div className="section-title"><h2>{isChannel ? t('channel_intro') : t('content_preview')}</h2></div>
         <div className={`reader ${previewLocked ? 'locked' : ''}`}>
           <h3 className="display">{product.name}</h3>
-          <div className="body-text">{product.body}</div>
+          <div className="body-text">{linkify(product.body)}</div>
           {previewLocked && (
             <div className="lock-badge">
               <div className="icon">🔒</div>
