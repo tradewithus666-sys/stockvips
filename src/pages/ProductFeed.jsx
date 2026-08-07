@@ -5,6 +5,7 @@ import { fetchArticlesByProduct } from '../lib/api';
 import { useAuth } from '../lib/AuthContext';
 import { useToast } from '../lib/ToastContext';
 import { useLang } from '../lib/LangContext';
+import { formatPublishedAt } from '../lib/format';
 
 export default function ProductFeed() {
   const { id } = useParams();
@@ -65,7 +66,7 @@ export default function ProductFeed() {
             onClick={() => owned ? nav(`/article/${a.id}`) : showToast(t('locked_read_prompt'))}
           >
             <div>
-              <div className="ti"><span className="art-date">{a.published_at}</span>{owned ? '' : '🔒 '}{a.title}</div>
+              <div className="ti"><span className="art-date">{formatPublishedAt(a)}</span>{owned ? '' : '🔒 '}{a.title}</div>
               <div className="sm">{a.summary}</div>
             </div>
           </div>

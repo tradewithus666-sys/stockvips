@@ -8,6 +8,7 @@ import {
 } from '../lib/api';
 import { useToast } from '../lib/ToastContext';
 import { useLang } from '../lib/LangContext';
+import { formatPublishedAt } from '../lib/format';
 
 const EMPTY_PRODUCT = { name: '', type: 'course', image: '', price: 0, price_quarter: '', price_year: '', description: '', body: '', sold_label: '', status: 'active' };
 
@@ -103,6 +104,22 @@ function ProductsTab() {
     }
   }
 
+  // 手机／触控装置不支援原生 HTML5 拖曳（draggable + ondragstart 只有滑鼠才有效），
+  // 所以另外补上「上移／下移」按钮，任何装置都能用来调整顺序。
+  async function moveProduct(index, dir) {
+    const target = index + dir;
+    if (target < 0 || target >= products.length) return;
+    const items = [...products];
+    [items[index], items[target]] = [items[target], items[index]];
+    setProducts(items);
+    try {
+      await reorderProducts(items);
+    } catch (err) {
+      showToast(t('toast_sort_failed', err.message));
+      reload();
+    }
+  }
+
   if (loading) return <div className="loading-screen">{t('loading')}</div>;
 
   return (
@@ -120,7 +137,7 @@ function ProductsTab() {
           <tr><th></th><th>{t('th_col_product')}</th><th>{t('th_col_type')}</th><th>{t('th_col_price')}</th><th>{t('th_col_sold')}</th><th>{t('th_col_status')}</th><th>{t('th_col_actions')}</th></tr>
         </thead>
         <tbody>
-          {products.map((p) => (
+          {products.map((p, idx) => (
             <tr
               key={p.id}
               draggable
@@ -128,7 +145,13 @@ function ProductsTab() {
               onDragOver={(e) => e.preventDefault()}
               onDrop={() => onDrop(p.id)}
             >
-              <td className="drag-handle">⠿</td>
+              <td className="drag-handle-cell">
+                <span className="drag-handle">⠿</span>
+                <div className="reorder-btns">
+                  <button type="button" disabled={idx === 0} onClick={() => moveProduct(idx, -1)}>▲</button>
+                  <button type="button" disabled={idx === products.length - 1} onClick={() => moveProduct(idx, 1)}>▼</button>
+                </div>
+              </td>
               <td>{p.name}</td>
               <td>{p.type}</td>
               <td className="mono">${p.price}</td>
@@ -239,6 +262,13 @@ function ArticlesTab() {
 
   const editingArticle = editingId && editingId !== 'new' ? articles.find((a) => a.id === editingId) : null;
 
+  // 按频道（订阅项目商品）分组显示，每个频道一个区块，方便管理内容较多的情况
+  const grouped = products.map((p) => ({
+    product: p,
+    items: articles.filter((a) => a.product_id === p.id),
+  }));
+  const orphanArticles = articles.filter((a) => !products.some((p) => p.id === a.product_id));
+
   return (
     <div>
       <div className="admin-header">
@@ -256,22 +286,56 @@ function ArticlesTab() {
           onCancel={() => setEditingId(null)}
         />
       )}
-      <table>
-        <thead><tr><th>{t('th_col_title')}</th><th>{t('th_col_product2')}</th><th>{t('th_col_publish_date')}</th><th>{t('th_col_actions')}</th></tr></thead>
-        <tbody>
-          {articles.map((a) => (
-            <tr key={a.id}>
-              <td>{a.title}</td>
-              <td>{a.products?.name}</td>
-              <td>{a.published_at}</td>
-              <td className="row-actions">
-                <div className="icon-btn" onClick={() => setEditingId(a.id)}>✎</div>
-                <div className="icon-btn" onClick={() => handleDelete(a.id)}>🗑</div>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+
+      {grouped.map(({ product, items }) => (
+        <div key={product.id} className="channel-group">
+          <div className="channel-group-head">
+            <span>📡 {product.name}</span>
+            <span className="tag">{t('count_articles', items.length)}</span>
+          </div>
+          {items.length ? (
+            <table>
+              <thead><tr><th>{t('th_col_title')}</th><th>{t('th_col_publish_date')}</th><th>{t('th_col_actions')}</th></tr></thead>
+              <tbody>
+                {items.map((a) => (
+                  <tr key={a.id}>
+                    <td>{a.title}</td>
+                    <td>{formatPublishedAt(a)}</td>
+                    <td className="row-actions">
+                      <div className="icon-btn" onClick={() => setEditingId(a.id)}>✎</div>
+                      <div className="icon-btn" onClick={() => handleDelete(a.id)}>🗑</div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <div className="empty" style={{ padding: '18px' }}>{t('no_articles_yet2')}</div>
+          )}
+        </div>
+      ))}
+
+      {orphanArticles.length > 0 && (
+        <div className="channel-group">
+          <div className="channel-group-head"><span>⚠️ {t('th_col_product2')}</span></div>
+          <table>
+            <thead><tr><th>{t('th_col_title')}</th><th>{t('th_col_publish_date')}</th><th>{t('th_col_actions')}</th></tr></thead>
+            <tbody>
+              {orphanArticles.map((a) => (
+                <tr key={a.id}>
+                  <td>{a.title}</td>
+                  <td>{formatPublishedAt(a)}</td>
+                  <td className="row-actions">
+                    <div className="icon-btn" onClick={() => setEditingId(a.id)}>✎</div>
+                    <div className="icon-btn" onClick={() => handleDelete(a.id)}>🗑</div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
       {!articles.length && <div className="empty">{t('no_articles_yet2')}</div>}
     </div>
   );

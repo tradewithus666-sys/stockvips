@@ -1,3 +1,4 @@
+
 :root{
   --bg:#0A0D13;
   --surface:#12161F;
@@ -34,7 +35,9 @@ body{
   -webkit-font-smoothing:antialiased;
   overflow-x:hidden; /* 防止任何元件不小心超出画面宽度时，把整个页面撑开缩小（手机 Safari 尤其明显） */
 }
-#root{overflow-x:hidden;width:100%;}
+/* 这里故意不对 #root 设 overflow-x:hidden——那样会让 #root 变成一个新的捲动容器，
+   反而会破坏里面 .nav 的 position:sticky（贴顶）效果。全站防溢出只交给 html/body 两层处理就够了。 */
+#root{width:100%;}
 body.protected-mode{
   -webkit-user-select:none;
   -moz-user-select:none;
@@ -446,6 +449,19 @@ tr:hover td{background:var(--surface-2);}
 .icon-btn{width:30px;height:30px;border-radius:100px;background:var(--surface-2);color:var(--muted);display:flex;align-items:center;justify-content:center;font-size:13px;}
 .icon-btn:hover{color:var(--amber);background:var(--amber-tint);}
 .drag-handle{cursor:grab;color:var(--muted);font-size:16px;width:28px;text-align:center;user-select:none;}
+.drag-handle-cell{display:flex;align-items:center;gap:6px;width:56px;}
+.reorder-btns{display:flex;flex-direction:column;gap:2px;}
+.reorder-btns button{
+  width:20px;height:16px;border-radius:4px;background:var(--surface-2);color:var(--muted);
+  font-size:9px;display:flex;align-items:center;justify-content:center;line-height:1;
+}
+.reorder-btns button:hover:not(:disabled){color:var(--amber);background:var(--amber-tint);}
+.reorder-btns button:disabled{opacity:0.3;cursor:not-allowed;}
+.channel-group{margin-bottom:28px;}
+.channel-group-head{
+  display:flex;align-items:center;gap:10px;font-weight:700;font-size:14.5px;
+  padding:10px 4px;border-bottom:2px solid var(--line);margin-bottom:8px;
+}
 .drag-handle:active{cursor:grabbing;}
 tr[draggable="true"].dragging{opacity:0.4;}
 tr[draggable="true"].drag-over{box-shadow:inset 0 2px 0 var(--amber);}

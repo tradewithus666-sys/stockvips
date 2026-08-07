@@ -4,6 +4,7 @@ import { fetchMyPermissions, fetchMyPurchases, fetchArticlesByProduct, purchaseW
 import { useAuth } from '../lib/AuthContext';
 import { useToast } from '../lib/ToastContext';
 import { useLang } from '../lib/LangContext';
+import { formatPublishedAt } from '../lib/format';
 
 function isExpired(dateStr) {
   if (!dateStr) return false;
@@ -135,7 +136,7 @@ export default function MemberCenter() {
           <div style={{ marginTop: 12, borderTop: '1px solid var(--line)', paddingTop: 10 }}>
             {articles.length ? articles.map((a) => (
               <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0', cursor: 'pointer' }} onClick={() => nav(`/article/${a.id}`)}>
-                <span className="art-date">{a.published_at}</span>
+                <span className="art-date">{formatPublishedAt(a)}</span>
                 <span style={{ fontSize: 13, color: 'var(--text)' }}>{a.title}</span>
               </div>
             )) : <div style={{ fontSize: 12, color: 'var(--muted)', padding: '4px 0' }}>{t('no_articles_for_product')}</div>}
@@ -159,9 +160,6 @@ export default function MemberCenter() {
             <div className="meta">{t('current_device')}<br /><b>{device}</b>{loginAt ? ` · ${loginAt}` : ''}</div>
           </div>
         </div>
-      </div>
-      <div className="form-panel" style={{ fontSize: 12.5, color: 'var(--muted)' }}>
-        {t('session_note')}
       </div>
 
       <div className="section-title" style={{ marginTop: 30 }}><h2 style={{ fontSize: 18 }}>📡 {t('my_subscriptions')}</h2></div>

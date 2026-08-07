@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../lib/AuthContext';
 import { useLang } from '../lib/LangContext';
+import { formatPublishedAt } from '../lib/format';
 
 export default function ArticleReader() {
   const { id } = useParams();
@@ -42,7 +43,7 @@ export default function ArticleReader() {
       <button className="btn btn-ghost" style={{ margin: '18px 0' }} onClick={() => nav(`/feed/${productId}`)}>{t('detail_back')}</button>
       <div className={`reader ${owned ? '' : 'locked'}`}>
         <h3 className="display">{article.title}</h3>
-        <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 14 }}>{t('published_on')} {article.published_at}</div>
+        <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 14 }}>{t('published_on')} {formatPublishedAt(article)}</div>
         <div className="article-flow">
           {(article.blocks || []).map((b, i) =>
             b.type === 'image'

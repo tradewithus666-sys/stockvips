@@ -27,7 +27,7 @@ export default function Nav() {
         {user ? (
           <>
             <span className="nav-user" title={profile?.email ?? user.email}>{profile?.email ?? user.email}</span>
-            <button className="btn btn-ghost" onClick={() => nav('/member')}>{t('nav_member')}</button>
+            <button className="btn btn-amber" onClick={() => nav('/member')}>{t('nav_member')}</button>
             <button className="btn btn-ghost" onClick={logout}>{t('nav_logout')}</button>
           </>
         ) : (
