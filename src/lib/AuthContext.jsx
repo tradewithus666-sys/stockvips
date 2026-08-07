@@ -3,6 +3,7 @@ import { supabase } from '../supabaseClient';
 
 const AuthContext = createContext(null);
 const SESSION_TOKEN_KEY = 'stockvip_session_token';
+const OAUTH_PENDING_KEY = 'stockvip_oauth_pending';
 const KICK_CHECK_INTERVAL_MS = 15000; // 每 15 秒检查一次是否被新装置登录挤下线
 
 export function AuthProvider({ children }) {
@@ -43,6 +44,21 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
+  // Google 登入：OAuth 会整页导去 Google、再导回来，跟输入帐密登入不是同一种流程，
+  // 没办法像 claimSession(userId) 那样在按钮点击当下直接呼叫（这时候还没有 userId）。
+  // 做法是先在 sessionStorage 留一个「即将透过 OAuth 登入」的标记，
+  // 页面导回来、Supabase 侦测到网址上的授权码并换出 session 时会触发 SIGNED_IN 事件，
+  // 这时如果看到标记存在，才视为一次「明确的登入动作」去抢占装置，然后把标记清掉。
+  const loginWithGoogle = useCallback(async () => {
+    sessionStorage.setItem(OAUTH_PENDING_KEY, '1');
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: window.location.origin },
+    });
+    if (error) sessionStorage.removeItem(OAUTH_PENDING_KEY);
+    return { error };
+  }, []);
+
   useEffect(() => {
     let mounted = true;
     supabase.auth.getSession().then(async ({ data }) => {
@@ -57,10 +73,16 @@ export function AuthProvider({ children }) {
       }
       setLoading(false);
     });
-    const { data: sub } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
+    const { data: sub } = supabase.auth.onAuthStateChange(async (event, newSession) => {
       setSession(newSession);
       const userId = newSession?.user?.id;
       if (userId) {
+        // Google OAuth 导回来会触发 SIGNED_IN，且 sessionStorage 留有 loginWithGoogle 设的标记，
+        // 这才代表是一次真正的登入动作，要抢占装置；一般的 session 恢复不会有这个标记。
+        if (event === 'SIGNED_IN' && sessionStorage.getItem(OAUTH_PENDING_KEY)) {
+          sessionStorage.removeItem(OAUTH_PENDING_KEY);
+          await claimSession(userId);
+        }
         await loadProfile(userId);
       } else {
         setProfile(null);
@@ -72,7 +94,7 @@ export function AuthProvider({ children }) {
       mounted = false;
       sub.subscription.unsubscribe();
     };
-  }, [loadProfile]);
+  }, [loadProfile, claimSession]);
 
   // 定期检查：如果 profiles.active_session_token 跟本分页记住的不一致，代表已在别处重新登录，强制登出
   useEffect(() => {
@@ -107,6 +129,7 @@ export function AuthProvider({ children }) {
     kicked,
     clearKicked: () => setKicked(false),
     claimSession, // 供 Login 页面在「使用者真的按下登入」那个当下明确呼叫
+    loginWithGoogle,
     refreshProfile,
   };
 
