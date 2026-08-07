@@ -72,6 +72,12 @@ export async function deleteArticle(id) {
   if (error) throw error;
 }
 
+export async function notifyTelegramArticle(articleId) {
+  const { data, error } = await supabase.rpc('notify_telegram_article', { p_article_id: articleId });
+  if (error) throw error;
+  return data;
+}
+
 /* ---------- 会员权限／购买 ---------- */
 export async function fetchMyPermissions(memberId) {
   const { data, error } = await supabase

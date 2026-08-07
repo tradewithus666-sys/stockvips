@@ -4,7 +4,7 @@ import { uploadImage } from '../lib/storage';
 import {
   fetchProducts, createProduct, updateProduct, deleteProduct, reorderProducts,
   fetchAllMembers, grantPermission, revokePermission, adjustMemberBalance,
-  createArticle, updateArticle, deleteArticle,
+  createArticle, updateArticle, deleteArticle, notifyTelegramArticle,
 } from '../lib/api';
 import { useToast } from '../lib/ToastContext';
 import { useLang } from '../lib/LangContext';
@@ -429,6 +429,7 @@ function ArticleForm({ products, initial, onDone, onCancel, fixedProductId }) {
   const [blocks, setBlocks] = useState(initial?.blocks?.length ? initial.blocks : [{ type: 'text', value: '' }]);
   const [dragIdx, setDragIdx] = useState(null);
   const [pasting, setPasting] = useState(false);
+  const [syncTelegram, setSyncTelegram] = useState(!initial); // 新增文章预设打勾，编辑既有文章预设不勾（避免改错字就重复发通知）
   const showToast = useToast();
   const { t } = useLang();
 
@@ -587,10 +588,14 @@ function ArticleForm({ products, initial, onDone, onCancel, fixedProductId }) {
     if (!title || !productId) { showToast(t('toast_fill_title_and_product')); return; }
     const cleanBlocks = blocks.map((b) => ({ type: b.type, value: (b.value || '').trim() })).filter((b) => b.value);
     try {
+      let saved;
       if (initial) {
-        await updateArticle(initial.id, { title, product_id: productId, summary, blocks: cleanBlocks });
+        saved = await updateArticle(initial.id, { title, product_id: productId, summary, blocks: cleanBlocks });
       } else {
-        await createArticle({ title, product_id: productId, summary, blocks: cleanBlocks });
+        saved = await createArticle({ title, product_id: productId, summary, blocks: cleanBlocks });
+      }
+      if (syncTelegram) {
+        try { await notifyTelegramArticle(saved.id); } catch (err) { showToast(t('toast_telegram_notify_failed', err.message)); }
       }
       onDone();
     } catch (err) {
@@ -674,6 +679,11 @@ function ArticleForm({ products, initial, onDone, onCancel, fixedProductId }) {
         <button className="btn btn-ghost btn-sm" onClick={addImageBlock}>{t('add_image_block_btn2')}</button>
         <button className="btn btn-ghost btn-sm" onClick={addPdfBlock}>{t('add_pdf_block_btn2')}</button>
       </div>
+
+      <label className="tg-sync-checkbox">
+        <input type="checkbox" checked={syncTelegram} onChange={(e) => setSyncTelegram(e.target.checked)} />
+        {t('sync_telegram_checkbox')}
+      </label>
 
       <div className="row-actions">
         <button className="btn btn-amber" onClick={handleSave}>{initial ? t('save_changes_btn2') : t('publish_and_notify_btn2')}</button>
