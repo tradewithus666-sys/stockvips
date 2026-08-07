@@ -8,7 +8,12 @@ export const DEFAULT_LANG = 'zh-cn';
 export const DICT = {
   'zh-tw': {
     // Nav
-    nav_member: '會員中心', nav_logout: '退出', nav_login: '登錄 / 註冊',
+    nav_member: '會員中心', nav_logout: '退出', nav_login: '登錄 / 註冊', nav_help: '操作教學', help_title: '操作教學',
+    help_step1_title: '註冊與登入', help_step1_desc: '點擊右上角「登錄/註冊」，輸入信箱與密碼即可註冊，也可以使用 Google 帳號一鍵登入。',
+    help_step2_title: '瀏覽與購買', help_step2_desc: '首頁依「課程／訂閱項目／共享帳號」分類展示，點擊卡片查看詳情，選擇時長與付款方式後即可購買。',
+    help_step3_title: '餘額支付與充值', help_step3_desc: '進入「會員中心 → 我的錢包」查看餘額，轉帳後聯繫 Telegram 客服，核實後由客服為你加值。',
+    help_step4_title: '查看已購內容', help_step4_desc: '購買後可在「會員中心」查看所有已開通的頻道訂閱、課程與共享帳號，點擊即可進入閱讀。',
+    help_step5_title: '續費與到期提醒', help_step5_desc: '訂閱項目到期前可在「會員中心」直接點擊「續費」延長使用期限。',
     // Home
     hero_title: 'VIP 會員訂閱平台課程',
     hero_desc: '一站式 VIP 訂閱，隨選隨看，靈活暢享。',
@@ -141,7 +146,12 @@ export const DICT = {
     toast_copy_blocked: '內容禁止複製，如需轉發請聯繫客服獲取授權',
   },
   'zh-cn': {
-    nav_member: '会员中心', nav_logout: '退出', nav_login: '登录 / 注册',
+    nav_member: '会员中心', nav_logout: '退出', nav_login: '登录 / 注册', nav_help: '操作教程', help_title: '操作教程',
+    help_step1_title: '注册与登录', help_step1_desc: '点击右上角「登录/注册」，输入邮箱与密码即可注册，也可以使用 Google 账号一键登录。',
+    help_step2_title: '浏览与购买', help_step2_desc: '首页依「课程／订阅项目／共享账号」分类展示，点击卡片查看详情，选择时长与付款方式后即可购买。',
+    help_step3_title: '余额支付与充值', help_step3_desc: '进入「会员中心 → 我的钱包」查看余额，转账后联系 Telegram 客服，核实后由客服为你加值。',
+    help_step4_title: '查看已购内容', help_step4_desc: '购买后可在「会员中心」查看所有已开通的频道订阅、课程与共享账号，点击即可进入阅读。',
+    help_step5_title: '续费与到期提醒', help_step5_desc: '订阅项目到期前可在「会员中心」直接点击「续费」延长使用期限。',
     hero_title: 'VIP 会员订阅平台课程',
     hero_desc: '一站式 VIP 订阅，随选随看，灵活畅享。',
     hero_cta: '查看我的会员权限',
@@ -268,7 +278,12 @@ export const DICT = {
     toast_copy_blocked: '内容禁止复制，如需转发请联系客服获取授权',
   },
   en: {
-    nav_member: 'Member Center', nav_logout: 'Log out', nav_login: 'Log in / Sign up',
+    nav_member: 'Member Center', nav_logout: 'Log out', nav_login: 'Log in / Sign up', nav_help: 'Help', help_title: 'How to use StockVIP',
+    help_step1_title: 'Sign up & log in', help_step1_desc: 'Click "Log in / Sign up" top right, register with email + password, or sign in instantly with Google.',
+    help_step2_title: 'Browse & purchase', help_step2_desc: 'The homepage groups items by Course / Subscription / Shared Account. Open a card, pick a duration and payment method, then purchase.',
+    help_step3_title: 'Balance payment & top-up', help_step3_desc: 'Go to Member Center -> My Wallet to see your balance. After transferring funds, contact Telegram support to get credited.',
+    help_step4_title: 'Access your purchases', help_step4_desc: 'After buying, view all active subscriptions, courses, and shared accounts in Member Center.',
+    help_step5_title: 'Renewals', help_step5_desc: 'Before a subscription expires, click "Renew" in Member Center to extend it.',
     hero_title: 'VIP Membership Subscription Courses',
     hero_desc: 'One-stop VIP subscriptions — watch anytime, enjoy freely.',
     hero_cta: 'View my membership',

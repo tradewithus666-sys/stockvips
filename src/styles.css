@@ -337,7 +337,6 @@ button{font-family:inherit;cursor:pointer;border:none;}
 .locked .article-flow .inline-img{filter:blur(10px);}
 .article-flow .inline-pdf{width:100%;height:85vh;border:1px solid var(--line);border-radius:14px;background:#fff;display:block;}
 .locked .article-flow .inline-pdf{filter:blur(10px);pointer-events:none;}
-.pdf-open-link{display:inline-block;margin-top:8px;font-size:12.5px;color:var(--amber);font-weight:700;}
 .product-gallery{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;margin-top:18px;padding-bottom:6px;}
 .product-gallery-img{width:200px;height:140px;object-fit:cover;border-radius:14px;border:1px solid var(--line);flex-shrink:0;scroll-snap-align:start;}
 .block-item{background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px;display:flex;gap:10px;align-items:flex-start;}

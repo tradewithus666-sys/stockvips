@@ -51,8 +51,7 @@ export default function ArticleReader() {
               : b.type === 'pdf'
               ? (
                 <div key={i}>
-                  <iframe className="inline-pdf" src={`${b.value}#view=FitH`} title={`pdf-${i}`} />
-                  <a className="pdf-open-link" href={b.value} target="_blank" rel="noopener noreferrer">{t('open_pdf_fullscreen')}</a>
+                  <iframe className="inline-pdf" src={`https://docs.google.com/viewer?url=${encodeURIComponent(b.value)}&embedded=true`} title={`pdf-${i}`} />
                 </div>
               )
               : <div key={i} className="body-text">{b.value}</div>

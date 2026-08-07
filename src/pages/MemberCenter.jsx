@@ -5,6 +5,7 @@ import { useAuth } from '../lib/AuthContext';
 import { useToast } from '../lib/ToastContext';
 import { useLang } from '../lib/LangContext';
 import { formatPublishedAt } from '../lib/format';
+import { supabase } from '../supabaseClient';
 
 function isExpired(dateStr) {
   if (!dateStr) return false;
@@ -39,6 +40,13 @@ export default function MemberCenter() {
     subscription: { label: t('type_subscription'), icon: '📡', color: 'var(--amber)',  tint: 'var(--amber-tint)' },
     shared:       { label: t('type_shared'),        icon: '🔑', color: 'var(--purple)', tint: 'var(--purple-tint)' },
   };
+
+  async function logout() {
+    await supabase.auth.signOut();
+    showToast(t('toast_logged_out'));
+    nav('/');
+  }
+
 
   const [perms, setPerms] = useState([]);
   const [purchases, setPurchases] = useState([]);
@@ -153,7 +161,10 @@ export default function MemberCenter() {
 
   return (
     <div>
-      <div style={{ marginTop: 32 }} className="section-title"><h2>{t('member_center_title')}</h2></div>
+      <div style={{ marginTop: 32 }} className="section-title">
+        <h2>{t('member_center_title')}</h2>
+        <button className="btn btn-ghost btn-sm" onClick={logout}>{t('nav_logout')}</button>
+      </div>
       <div className="info-card">
         <div className="who"><b>{profile?.email}</b><span>{t('joined_label')}{profile?.created_at?.slice(0, 10)}</span></div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>

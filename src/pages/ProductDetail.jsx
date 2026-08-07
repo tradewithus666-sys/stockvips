@@ -211,14 +211,6 @@ export default function ProductDetail() {
                     {busy ? t('processing') : payMethod === 'balance' ? t('buy_now_open') : payMethod === 'usdt' ? t('pay_usdt_btn') : t('pay_telegram_btn')}
                   </button>
                 </div>
-
-                {product.images?.length > 0 && (
-                  <div className="product-gallery">
-                    {product.images.map((url, i) => (
-                      <img key={i} src={url} alt="" className="product-gallery-img" />
-                    ))}
-                  </div>
-                )}
               </>
             )}
           </div>

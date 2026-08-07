@@ -15,6 +15,7 @@ import ProductFeed from './pages/ProductFeed';
 import ArticleReader from './pages/ArticleReader';
 import MemberCenter from './pages/MemberCenter';
 import Wallet from './pages/Wallet';
+import Help from './pages/Help';
 import Admin from './pages/Admin';
 
 const WATERMARK_PATHS = ['/member', '/wallet'];
@@ -100,6 +101,7 @@ export default function App() {
           <Route path="/article/:id" element={<ArticleReader />} />
           <Route path="/member" element={<MemberCenter />} />
           <Route path="/wallet" element={<Wallet />} />
+          <Route path="/help" element={<Help />} />
           {/* 管理后台入口已从导览列移除，仅能直接输入 /admin 网址进入，由 RequireAdmin 做权限保护 */}
           <Route path="/admin" element={<RequireAdmin><Admin /></RequireAdmin>} />
         </Routes>
