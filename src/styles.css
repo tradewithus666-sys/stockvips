@@ -22,6 +22,7 @@
   --shadow:0 4px 20px rgba(0,0,0,0.35);
 }
 *{box-sizing:border-box;margin:0;padding:0;}
+html{overflow-x:hidden;width:100%;}
 body{
   background:
     radial-gradient(900px 500px at 15% -10%, rgba(242,169,59,0.08), transparent 60%),
@@ -31,8 +32,12 @@ body{
   min-height:100vh;
   line-height:1.55;
   -webkit-font-smoothing:antialiased;
+  width:100%;
   overflow-x:hidden;
+
 }
+#root{overflow-x:hidden;width:100%;}
+
 body.protected-mode{
   -webkit-user-select:none;
   -moz-user-select:none;
@@ -73,7 +78,7 @@ button{font-family:inherit;cursor:pointer;border:none;}
 }
 .logo .sub{font-size:10.5px;color:var(--muted);font-weight:600;letter-spacing:0.5px;display:block;margin-top:1px;}
 .nav-right{display:flex;gap:10px;align-items:center;flex-shrink:0;flex-wrap:wrap;}
-.nav-user{font-size:12.5px;color:var(--muted);padding:8px 14px;background:var(--surface-2);border-radius:100px;font-weight:600;}
+.nav-user{font-size:12.5px;color:var(--muted);padding:8px 14px;background:var(--surface-2);border-radius:100px;font-weight:600;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .btn{
   padding:10px 20px;border-radius:100px;font-size:13.5px;font-weight:700;
   transition:all .15s;white-space:nowrap;
@@ -315,7 +320,7 @@ button{font-family:inherit;cursor:pointer;border:none;}
   transform:rotate(-18deg) scale(1.3);
   width:140%;height:140%;left:-20%;top:-20%;
 }
-.global-watermark-inner span{font-size:14px;font-weight:800;color:rgba(255,0,200,0.02);white-space:nowrap;margin:40px 52px;letter-spacing:0.4px;}
+.global-watermark-inner span{font-size:14px;font-weight:800;color:rgba(255,0,200,0.02);white-space:nowrap;margin:22px 30px;letter-spacing:0.4px;}
 .protect-note{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:12px;margin-top:14px;}
 .protect-note .dot{width:6px;height:6px;border-radius:50%;background:var(--green);flex-shrink:0;}
 .article-flow{display:flex;flex-direction:column;gap:16px;position:relative;z-index:1;}
@@ -519,7 +524,14 @@ tr[draggable="true"].drag-over{box-shadow:inset 0 2px 0 var(--amber);}
   .form-grid{grid-template-columns:1fr;}
   .stat-row{grid-template-columns:1fr 1fr;}
   .dur-grid{grid-template-columns:1fr;}
-  .auth-card{padding:24px;}
+  .auth-card{padding:24px;}/* 手机荧幕字重普遍偏细、对比不够清晰，这里统一加粗内文字重、拉高一点淡色文字的亮度 */
+  body{-webkit-font-smoothing:auto;}
+  :root{--muted:#A3ABBC;}
+  p,.desc,.body-text,.pmeta,.sm,.wtx-meta,.card p,.hero p,td,.member-sub,.session-box .meta{font-weight:500;}
+  .nav-user,.pill,.chip,.tag{font-weight:700;}
+  h1,h2,h3,.display{font-weight:800;}
+  input,select,textarea{font-weight:600;}
+
 }
 
 /* ---------- React 版补充：原型没有的载入状态 ---------- */

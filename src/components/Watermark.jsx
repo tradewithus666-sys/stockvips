@@ -22,10 +22,10 @@ export default function Watermark({ text, active }) {
     function recompute() {
       const w = window.innerWidth * 1.4;
       const h = window.innerHeight * 1.4;
-      const cellW = 260, cellH = 190;
+      const cellW = 170, cellH = 120;
       const cols = Math.max(2, Math.ceil(w / cellW));
       const rows = Math.max(2, Math.ceil(h / cellH));
-      setCount(Math.min(cols * rows, 160));
+      setCount(Math.min(cols * rows, 320));
     }
     recompute();
     window.addEventListener('resize', recompute);
