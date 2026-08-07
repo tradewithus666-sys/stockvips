@@ -36,9 +36,11 @@ export default function Watermark({ text, active }) {
 
   return (
     <div className="global-watermark" aria-hidden="true">
-      {Array.from({ length: count }).map((_, i) => (
-        <span key={i}>{text}</span>
-      ))}
+      <div className="global-watermark-inner">
+        {Array.from({ length: count }).map((_, i) => (
+          <span key={i}>{text}</span>
+        ))}
+      </div>
     </div>
   );
 }
