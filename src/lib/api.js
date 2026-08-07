@@ -154,6 +154,15 @@ export async function createPaymentIntent({ productId, duration, amount, address
   return data;
 }
 
+export async function createRechargeIntent({ amount, address }) {
+  const { data, error } = await supabase.rpc('create_recharge_intent', {
+    p_amount: amount,
+    p_address: address,
+  });
+  if (error) throw error;
+  return data;
+}
+
 export async function checkPaymentIntent(intentId) {
   const { data, error } = await supabase.rpc('check_and_complete_usdt_payment', { p_intent_id: intentId });
   if (error) throw error;

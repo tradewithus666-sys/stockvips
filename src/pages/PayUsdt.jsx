@@ -67,8 +67,12 @@ export default function PayUsdt() {
       <div className="form-panel" style={{ textAlign: 'center', maxWidth: 420, margin: '60px auto' }}>
         <div style={{ fontSize: 48 }}>✅</div>
         <h2 style={{ margin: '14px 0' }}>支付成功</h2>
-        <p style={{ color: 'var(--muted)', marginBottom: 20 }}>{intent.products?.name} 权限已开通</p>
-        <button className="btn btn-amber" onClick={() => nav('/member')}>前往会员中心</button>
+        <p style={{ color: 'var(--muted)', marginBottom: 20 }}>
+          {intent.kind === 'recharge' ? `余额已到帐 +${intent.amount} HKD` : `${intent.products?.name} 权限已开通`}
+        </p>
+        <button className="btn btn-amber" onClick={() => nav(intent.kind === 'recharge' ? '/wallet' : '/member')}>
+          {intent.kind === 'recharge' ? '返回钱包' : '前往会员中心'}
+        </button>
       </div>
     );
   }
