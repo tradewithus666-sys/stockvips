@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
-import { fetchProductById, fetchArticlesByProduct, purchaseWithBalance } from '../lib/api';
+import { fetchProductById, fetchArticlesByProduct, purchaseWithBalance, createPaymentIntent } from '../lib/api';
 import { useAuth } from '../lib/AuthContext';
 import { useToast } from '../lib/ToastContext';
 import { useLang } from '../lib/LangContext';
@@ -98,15 +98,31 @@ export default function ProductDetail() {
     }
   }
 
-  function handleUsdtOrTelegram() {
+  async function handleUsdt() {
+    if (!user) { showToast(t('toast_login_first')); nav('/login'); return; }
+    try {
+      const intent = await createPaymentIntent({
+        productId: product.id,
+        duration: isCourse ? 'lifetime' : duration,
+        amount: price,
+        address: import.meta.env.VITE_USDT_BEP20_ADDRESS,
+      });
+      nav(`/pay/${intent.id}`);
+    } catch (err) {
+      showToast(err.message);
+    }
+  }
+
+  function handleTelegram() {
     if (!user) { showToast(t('toast_login_first')); nav('/login'); return; }
     window.open(import.meta.env.VITE_TELEGRAM_SUPPORT_URL, '_blank', 'noopener');
-    showToast(payMethod === 'usdt' ? t('toast_usdt_redirect') : t('toast_telegram_redirect'));
+    showToast(t('toast_telegram_redirect'));
   }
 
   function submit() {
     if (payMethod === 'balance') handleBalancePurchase();
-    else handleUsdtOrTelegram();
+    else if (payMethod === 'usdt') handleUsdt();
+    else handleTelegram();
   }
 
   return (

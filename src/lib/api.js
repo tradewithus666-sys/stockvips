@@ -142,3 +142,26 @@ export async function adjustMemberBalance({ memberId, amount }) {
   if (error) throw error;
   return data;
 }
+
+export async function createPaymentIntent({ productId, duration, amount, address }) {
+  const { data, error } = await supabase.rpc('create_payment_intent', {
+    p_product_id: productId,
+    p_duration: duration,
+    p_amount: amount,
+    p_address: address,
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function checkPaymentIntent(intentId) {
+  const { data, error } = await supabase.rpc('check_and_complete_usdt_payment', { p_intent_id: intentId });
+  if (error) throw error;
+  return data;
+}
+
+export async function fetchPaymentIntent(intentId) {
+  const { data, error } = await supabase.from('payment_intents').select('*, products(name)').eq('id', intentId).single();
+  if (error) throw error;
+  return data;
+}
