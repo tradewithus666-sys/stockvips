@@ -1,0 +1,134 @@
+import { supabase } from '../supabaseClient';
+
+/* ---------- 商品 ---------- */
+export async function fetchProducts() {
+  const { data, error } = await supabase
+    .from('products')
+    .select('*')
+    .order('sort_order', { ascending: true });
+  if (error) throw error;
+  return data;
+}
+
+export async function fetchProductById(id) {
+  const { data, error } = await supabase.from('products').select('*').eq('id', id).single();
+  if (error) throw error;
+  return data;
+}
+
+export async function createProduct(payload) {
+  const { data, error } = await supabase.from('products').insert(payload).select().single();
+  if (error) throw error;
+  return data;
+}
+
+export async function updateProduct(id, payload) {
+  const { data, error } = await supabase.from('products').update(payload).eq('id', id).select().single();
+  if (error) throw error;
+  return data;
+}
+
+export async function deleteProduct(id) {
+  const { error } = await supabase.from('products').delete().eq('id', id);
+  if (error) throw error;
+}
+
+// 拖曳排序：一次传入 [{id, sort_order}, ...] 批次更新
+export async function reorderProducts(items) {
+  const updates = items.map((item, idx) =>
+    supabase.from('products').update({ sort_order: idx }).eq('id', item.id)
+  );
+  const results = await Promise.all(updates);
+  const failed = results.find((r) => r.error);
+  if (failed) throw failed.error;
+}
+
+/* ---------- 文章 ---------- */
+export async function fetchArticlesByProduct(productId) {
+  const { data, error } = await supabase
+    .from('articles')
+    .select('*')
+    .eq('product_id', productId)
+    .order('published_at', { ascending: false });
+  if (error) throw error;
+  return data;
+}
+
+export async function createArticle(payload) {
+  const { data, error } = await supabase.from('articles').insert(payload).select().single();
+  if (error) throw error;
+  return data;
+}
+
+export async function updateArticle(id, payload) {
+  const { data, error } = await supabase.from('articles').update(payload).eq('id', id).select().single();
+  if (error) throw error;
+  return data;
+}
+
+export async function deleteArticle(id) {
+  const { error } = await supabase.from('articles').delete().eq('id', id);
+  if (error) throw error;
+}
+
+/* ---------- 会员权限／购买 ---------- */
+export async function fetchMyPermissions(memberId) {
+  const { data, error } = await supabase
+    .from('permissions')
+    .select('*, products(*)')
+    .eq('member_id', memberId);
+  if (error) throw error;
+  return data;
+}
+
+export async function fetchMyPurchases(memberId) {
+  const { data, error } = await supabase
+    .from('purchases')
+    .select('*, products(*)')
+    .eq('member_id', memberId)
+    .order('purchased_at', { ascending: false });
+  if (error) throw error;
+  return data;
+}
+
+// 用余额购买／续费：呼叫 Postgres function 做「扣款 + 开通权限」的原子操作，
+// 避免像原本前端直接改 balance 那样，在并发情况下扣款跟开通对不上。
+export async function purchaseWithBalance({ productId, duration, price }) {
+  const { data, error } = await supabase.rpc('purchase_with_balance', {
+    p_product_id: productId,
+    p_duration: duration,
+    p_price: price,
+  });
+  if (error) throw error;
+  return data;
+}
+
+/* ---------- 管理员操作 ---------- */
+export async function fetchAllMembers() {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*, permissions(*, products(*))')
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return data;
+}
+
+export async function grantPermission({ memberId, productId, days }) {
+  const expiresAt = days ? new Date(Date.now() + days * 86400000).toISOString().slice(0, 10) : null;
+  const { data, error } = await supabase
+    .from('permissions')
+    .upsert({ member_id: memberId, product_id: productId, expires_at: expiresAt }, { onConflict: 'member_id,product_id' })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function revokePermission({ memberId, productId }) {
+  const { error } = await supabase
+    .from('permissions')
+    .delete()
+    .eq('member_id', memberId)
+    .eq('product_id', productId);
+  if (error) throw error;
+}
