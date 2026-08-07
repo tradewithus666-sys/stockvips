@@ -132,7 +132,9 @@ function ProductsTab() {
         {t('products_drag_hint')}
       </p>
       {editing && <ProductForm initial={editing === 'new' ? EMPTY_PRODUCT : editing} onSave={handleSave} onCancel={() => setEditing(null)} />}
-      <div className="table-scroll"><table>
+
+      {/* 桌面版：表格 */}
+      <div className="table-scroll desktop-only"><table>
         <thead>
           <tr><th></th><th>{t('th_col_product')}</th><th>{t('th_col_type')}</th><th>{t('th_col_price')}</th><th>{t('th_col_sold')}</th><th>{t('th_col_status')}</th><th>{t('th_col_actions')}</th></tr>
         </thead>
@@ -166,6 +168,29 @@ function ProductsTab() {
           ))}
         </tbody>
       </table></div>
+
+      {/* 手机版：卡片式排版，避免表格在窄屏被挤压、操作图示太密集容易误触 */}
+      <div className="mobile-only">
+        {products.map((p, idx) => (
+          <div className="product-mcard" key={p.id}>
+            <div className="product-mcard-top">
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 14.5 }}>{p.name}</div>
+                <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>{p.type} · ${p.price} HKD · {t('th_col_sold')} {p.sold_label || '—'}</div>
+              </div>
+              <span className={`pill ${p.status === 'off' ? 'off' : ''}`}>{p.status === 'off' ? t('status_off') : t('status_active')}</span>
+            </div>
+            <div className="product-mcard-actions">
+              <button className="btn btn-ghost btn-sm" disabled={idx === 0} onClick={() => moveProduct(idx, -1)}>▲ {t('move_up')}</button>
+              <button className="btn btn-ghost btn-sm" disabled={idx === products.length - 1} onClick={() => moveProduct(idx, 1)}>▼ {t('move_down')}</button>
+              <button className="btn btn-ghost btn-sm" onClick={() => setEditing(p)}>✎ {t('edit_btn')}</button>
+              <button className="btn btn-ghost btn-sm" onClick={() => handleToggle(p)}>{p.status === 'off' ? `↑ ${t('status_active')}` : `↓ ${t('status_off')}`}</button>
+              <button className="btn btn-danger btn-sm" onClick={() => handleDelete(p.id)}>🗑 {t('delete_title')}</button>
+            </div>
+          </div>
+        ))}
+      </div>
+
       {!products.length && <div className="empty">{t('no_products_yet')}</div>}
     </div>
   );
@@ -719,7 +744,15 @@ function GrantForm({ products, onGrant }) {
             {products.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
         </div>
-        <div className="field"><label>{t('field_grant_days2')}</label><input type="number" value={days} onChange={(e) => setDays(e.target.value)} placeholder="30" /></div>
+        <div className="field">
+          <label>{t('field_grant_days2')}</label>
+          <input type="number" value={days} onChange={(e) => setDays(e.target.value)} placeholder="30" />
+          <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+            {[30, 90, 365].map((d) => (
+              <button key={d} type="button" className={`quick-day-btn ${String(d) === days ? 'active' : ''}`} onClick={() => setDays(String(d))}>{d}{t('days_unit')}</button>
+            ))}
+          </div>
+        </div>
       </div>
       <button className="btn btn-amber" onClick={() => onGrant(productId, days)}>{t('confirm_grant_btn2')}</button>
     </div>
