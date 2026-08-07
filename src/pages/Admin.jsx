@@ -280,9 +280,8 @@ function ProductForm({ initial, onSave, onCancel }) {
 function ArticlesTab() {
   const [products, setProducts] = useState([]);
   const [articles, setArticles] = useState([]);
-  const [editingId, setEditingId] = useState(null); // null | 'new' | article.id
   const [loading, setLoading] = useState(true);
-  const showToast = useToast();
+  const [selectedChannelId, setSelectedChannelId] = useState(null); // null = 目录页
   const { t } = useLang();
 
   async function reload() {
@@ -296,98 +295,136 @@ function ArticlesTab() {
   }
   useEffect(() => { reload(); }, []);
 
-  async function handleDelete(id) {
-    if (!confirm(t('confirm_delete_article2'))) return;
-    await deleteArticle(id);
-    reload();
-  }
-
   if (loading) return <div className="loading-screen">{t('loading')}</div>;
 
-  const editingArticle = editingId && editingId !== 'new' ? articles.find((a) => a.id === editingId) : null;
-
-  // 按频道（订阅项目商品）分组显示，每个频道一个区块，方便管理内容较多的情况
-  const grouped = products.map((p) => ({
-    product: p,
-    items: articles.filter((a) => a.product_id === p.id),
-  }));
   const orphanArticles = articles.filter((a) => !products.some((p) => p.id === a.product_id));
+  const selectedProduct = products.find((p) => p.id === selectedChannelId);
+
+  if (selectedChannelId) {
+    return (
+      <ChannelDetail
+        product={selectedProduct}
+        articles={articles.filter((a) => a.product_id === selectedChannelId)}
+        products={products}
+        onBack={() => setSelectedChannelId(null)}
+        onChanged={reload}
+      />
+    );
+  }
 
   return (
     <div>
       <div className="admin-header">
         <div />
-        {products.length > 0
-          ? <button className="btn btn-amber" onClick={() => setEditingId('new')}>{t('publish_new_article_btn2')}</button>
-          : <span style={{ color: 'var(--muted)', fontSize: 12.5 }}>{t('articles_need_channel_hint')}</span>}
+        <span style={{ color: 'var(--muted)', fontSize: 12.5 }}>{t('channel_directory_hint')}</span>
       </div>
-      {editingId && (
-        <ArticleForm
-          key={editingId}
-          products={products}
-          initial={editingArticle}
-          onDone={() => { setEditingId(null); reload(); showToast(editingArticle ? t('toast_article_saved') : t('toast_article_published')); }}
-          onCancel={() => setEditingId(null)}
-        />
-      )}
 
-      {grouped.map(({ product, items }) => (
-        <div key={product.id} className="channel-group">
-          <div className="channel-group-head">
-            <span>📡 {product.name}</span>
-            <span className="tag">{t('count_articles', items.length)}</span>
-          </div>
-          {items.length ? (
-            <div className="table-scroll"><table>
-              <thead><tr><th>{t('th_col_title')}</th><th>{t('th_col_publish_date')}</th><th>{t('th_col_actions')}</th></tr></thead>
-              <tbody>
-                {items.map((a) => (
-                  <tr key={a.id}>
-                    <td>{a.title}</td>
-                    <td>{formatPublishedAt(a)}</td>
-                    <td className="row-actions">
-                      <div className="icon-btn" onClick={() => setEditingId(a.id)}>✎</div>
-                      <div className="icon-btn" onClick={() => handleDelete(a.id)}>🗑</div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table></div>
-          ) : (
-            <div className="empty" style={{ padding: '18px' }}>{t('no_articles_yet2')}</div>
-          )}
-        </div>
-      ))}
+      <div className="channel-card-grid">
+        {products.map((p) => {
+          const count = articles.filter((a) => a.product_id === p.id).length;
+          return (
+            <div className="channel-card" key={p.id} onClick={() => setSelectedChannelId(p.id)}>
+              {p.image
+                ? <img src={p.image} alt="" className="channel-card-img" />
+                : <div className="channel-card-img badge-icon" style={{ fontSize: 26 }}>📡</div>}
+              <div className="channel-card-body">
+                <div className="channel-card-title">{p.name}</div>
+                <div className="channel-card-count">{t('count_articles', count)}</div>
+              </div>
+              <div className="channel-card-arrow">→</div>
+            </div>
+          );
+        })}
+      </div>
+      {!products.length && <div className="empty">{t('articles_need_channel_hint')}</div>}
 
       {orphanArticles.length > 0 && (
-        <div className="channel-group">
+        <div className="channel-group" style={{ marginTop: 30 }}>
           <div className="channel-group-head"><span>⚠️ {t('th_col_product2')}</span></div>
           <div className="table-scroll"><table>
-            <thead><tr><th>{t('th_col_title')}</th><th>{t('th_col_publish_date')}</th><th>{t('th_col_actions')}</th></tr></thead>
+            <thead><tr><th>{t('th_col_title')}</th><th>{t('th_col_publish_date')}</th></tr></thead>
             <tbody>
               {orphanArticles.map((a) => (
-                <tr key={a.id}>
-                  <td>{a.title}</td>
-                  <td>{formatPublishedAt(a)}</td>
-                  <td className="row-actions">
-                    <div className="icon-btn" onClick={() => setEditingId(a.id)}>✎</div>
-                    <div className="icon-btn" onClick={() => handleDelete(a.id)}>🗑</div>
-                  </td>
-                </tr>
+                <tr key={a.id}><td>{a.title}</td><td>{formatPublishedAt(a)}</td></tr>
               ))}
             </tbody>
           </table></div>
         </div>
       )}
-
-      {!articles.length && <div className="empty">{t('no_articles_yet2')}</div>}
     </div>
   );
 }
 
-function ArticleForm({ products, initial, onDone, onCancel }) {
+// 单一频道管理页：进入后只看到该频道自己的文章，未来可以在这里加频道公告、封面编辑、自动发布排程等功能而不影响目录页
+function ChannelDetail({ product, articles, products, onBack, onChanged }) {
+  const [editingId, setEditingId] = useState(null); // null | 'new' | article.id
+  const showToast = useToast();
+  const { t } = useLang();
+
+  async function handleDelete(id) {
+    if (!confirm(t('confirm_delete_article2'))) return;
+    await deleteArticle(id);
+    onChanged();
+  }
+
+  const editingArticle = editingId && editingId !== 'new' ? articles.find((a) => a.id === editingId) : null;
+
+  return (
+    <div>
+      <button className="btn btn-ghost" style={{ marginBottom: 18 }} onClick={onBack}>← {t('back_to_channels')}</button>
+
+      <div className="channel-detail-head">
+        {product.image
+          ? <img src={product.image} alt="" className="channel-detail-img" />
+          : <div className="channel-detail-img badge-icon" style={{ fontSize: 30 }}>📡</div>}
+        <div>
+          <div style={{ fontWeight: 800, fontSize: 20 }}>{product.name}</div>
+          <div style={{ color: 'var(--muted)', fontSize: 13 }}>{t('count_articles', articles.length)}</div>
+        </div>
+      </div>
+
+      <div className="admin-header">
+        <div />
+        <button className="btn btn-amber" onClick={() => setEditingId('new')}>{t('publish_new_article_btn2')}</button>
+      </div>
+
+      {editingId && (
+        <ArticleForm
+          key={editingId}
+          products={products}
+          initial={editingArticle}
+          fixedProductId={product.id}
+          onDone={() => { setEditingId(null); onChanged(); showToast(editingArticle ? t('toast_article_saved') : t('toast_article_published')); }}
+          onCancel={() => setEditingId(null)}
+        />
+      )}
+
+      {articles.length ? (
+        <div className="table-scroll"><table>
+          <thead><tr><th>{t('th_col_title')}</th><th>{t('th_col_publish_date')}</th><th>{t('th_col_actions')}</th></tr></thead>
+          <tbody>
+            {articles.map((a) => (
+              <tr key={a.id}>
+                <td>{a.title}</td>
+                <td>{formatPublishedAt(a)}</td>
+                <td className="row-actions">
+                  <div className="icon-btn" onClick={() => setEditingId(a.id)}>✎</div>
+                  <div className="icon-btn" onClick={() => handleDelete(a.id)}>🗑</div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table></div>
+      ) : (
+        <div className="empty">{t('no_articles_yet2')}</div>
+      )}
+    </div>
+  );
+}
+
+function ArticleForm({ products, initial, onDone, onCancel, fixedProductId }) {
   const [title, setTitle] = useState(initial?.title || '');
-  const [productId, setProductId] = useState(initial?.product_id || products[0]?.id || '');
+  const [productId, setProductId] = useState(initial?.product_id || fixedProductId || products[0]?.id || '');
   const [summary, setSummary] = useState(initial?.summary || '');
   const [blocks, setBlocks] = useState(initial?.blocks?.length ? initial.blocks : [{ type: 'text', value: '' }]);
   const [dragIdx, setDragIdx] = useState(null);
@@ -579,12 +616,14 @@ function ArticleForm({ products, initial, onDone, onCancel }) {
           <label>{t('field_article_title2')}</label>
           <input value={title} onChange={(e) => setTitle(e.target.value)} />
         </div>
-        <div className="field">
-          <label>{t('field_article_product2')}</label>
-          <select value={productId} onChange={(e) => setProductId(e.target.value)}>
-            {products.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-          </select>
-        </div>
+        {!fixedProductId && (
+          <div className="field">
+            <label>{t('field_article_product2')}</label>
+            <select value={productId} onChange={(e) => setProductId(e.target.value)}>
+              {products.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+          </div>
+        )}
         <div className="field" style={{ gridColumn: '1/-1' }}>
           <label>{t('field_summary2')}</label>
           <input value={summary} onChange={(e) => setSummary(e.target.value)} />
