@@ -3,7 +3,7 @@ import { supabase } from '../supabaseClient';
 import { uploadImage } from '../lib/storage';
 import {
   fetchProducts, createProduct, updateProduct, deleteProduct, reorderProducts,
-  fetchAllMembers, grantPermission, revokePermission,
+  fetchAllMembers, grantPermission, revokePermission, adjustMemberBalance,
   createArticle, updateArticle, deleteArticle,
 } from '../lib/api';
 import { useToast } from '../lib/ToastContext';
@@ -172,24 +172,38 @@ function ProductsTab() {
 }
 
 function ProductForm({ initial, onSave, onCancel }) {
-  const [form, setForm] = useState(initial);
+  const [form, setForm] = useState({ ...initial, images: initial.images && initial.images.length ? initial.images : (initial.image ? [initial.image] : []) });
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
   const [uploading, setUploading] = useState(false);
   const showToast = useToast();
   const { t } = useLang();
 
   async function handleFile(e) {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    const room = 5 - form.images.length;
+    if (room <= 0) { showToast(t('max_images_hint')); return; }
     setUploading(true);
     try {
-      const url = await uploadImage(file, 'covers');
-      setForm({ ...form, image: url });
+      const urls = [];
+      for (const file of files.slice(0, room)) {
+        const url = await uploadImage(file, 'covers');
+        urls.push(url);
+      }
+      setForm({ ...form, images: [...form.images, ...urls] });
     } catch (err) {
       showToast(t('toast_upload_failed', err.message));
     } finally {
       setUploading(false);
     }
+  }
+
+  function removeImage(idx) {
+    setForm({ ...form, images: form.images.filter((_, i) => i !== idx) });
+  }
+
+  function saveWithImages() {
+    onSave({ ...form, images: form.images, image: form.images[0] || '' });
   }
 
   return (
@@ -206,11 +220,16 @@ function ProductForm({ initial, onSave, onCancel }) {
           </select>
         </div>
         <div className="field" style={{ gridColumn: '1/-1' }}>
-          <label>{t('field_product_image_upload')}</label>
-          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-            {form.image && <img src={form.image} alt="" style={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 10 }} />}
-            <input type="file" accept="image/*" onChange={handleFile} />
+          <label>{t('field_product_image_upload')} ({form.images.length}/5)</label>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 8 }}>
+            {form.images.map((url, idx) => (
+              <div key={idx} style={{ position: 'relative' }}>
+                <img src={url} alt="" style={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 10 }} />
+                <div className="icon-btn" style={{ position: 'absolute', top: -8, right: -8, width: 22, height: 22, fontSize: 11 }} onClick={() => removeImage(idx)}>✕</div>
+              </div>
+            ))}
           </div>
+          {form.images.length < 5 && <input type="file" accept="image/*" multiple onChange={handleFile} />}
           {uploading && <div style={{ fontSize: 12, color: 'var(--muted)' }}>{t('uploading_label')}</div>}
         </div>
         <div className="field"><label>{t('field_price2')}</label><input type="number" value={form.price} onChange={set('price')} /></div>
@@ -225,7 +244,7 @@ function ProductForm({ initial, onSave, onCancel }) {
         <div className="field" style={{ gridColumn: '1/-1' }}><label>{t('field_body_detail2')}</label><textarea value={form.body || ''} onChange={set('body')} /></div>
       </div>
       <div className="row-actions">
-        <button className="btn btn-amber" onClick={() => onSave(form)}>{t('save_btn')}</button>
+        <button className="btn btn-amber" onClick={saveWithImages}>{t('save_btn')}</button>
         <button className="btn btn-ghost" onClick={onCancel}>{t('cancel_btn')}</button>
       </div>
     </div>
@@ -606,6 +625,8 @@ function MembersTab() {
   const [products, setProducts] = useState([]);
   const [search, setSearch] = useState('');
   const [grantFor, setGrantFor] = useState(null);
+  const [balanceFor, setBalanceFor] = useState(null);
+  const [balanceAmount, setBalanceAmount] = useState('');
   const [loading, setLoading] = useState(true);
   const showToast = useToast();
   const { t } = useLang();
@@ -633,6 +654,16 @@ function MembersTab() {
     reload();
   }
 
+  async function handleAdjustBalance(memberId) {
+    const amount = Number(balanceAmount);
+    if (!amount) return;
+    await adjustMemberBalance({ memberId, amount });
+    setBalanceFor(null);
+    setBalanceAmount('');
+    showToast(t('toast_balance_adjusted'));
+    reload();
+  }
+
   if (loading) return <div className="loading-screen">{t('loading')}</div>;
 
   return (
@@ -652,6 +683,7 @@ function MembersTab() {
               <div style={{ fontSize: 12, color: 'var(--muted)' }}>{t('member_meta', Number(m.balance).toFixed(2), m.created_at?.slice(0, 10))}</div>
             </div>
             <button className="btn btn-ghost btn-sm" onClick={() => setGrantFor(grantFor === m.id ? null : m.id)}>{t('grant_permission_btn2')}</button>
+            <button className="btn btn-ghost btn-sm" onClick={() => setBalanceFor(balanceFor === m.id ? null : m.id)}>{t('adjust_balance_btn')}</button>
           </div>
           <div className="chip-list">
             {(m.permissions || []).length ? m.permissions.map((pm) => (
@@ -662,6 +694,12 @@ function MembersTab() {
             )) : <span style={{ color: 'var(--muted)', fontSize: 12 }}>—</span>}
           </div>
           {grantFor === m.id && <GrantForm products={products} onGrant={(pid, days) => handleGrant(m.id, pid, days)} />}
+          {balanceFor === m.id && (
+            <div style={{ marginTop: 14, display: 'flex', gap: 10, alignItems: 'center' }}>
+              <input type="number" style={{ maxWidth: 160 }} value={balanceAmount} onChange={(e) => setBalanceAmount(e.target.value)} placeholder="100 / -50" />
+              <button className="btn btn-amber btn-sm" onClick={() => handleAdjustBalance(m.id)}>{t('confirm_adjust_btn')}</button>
+            </div>
+          )}
         </div>
       ))}
     </div>

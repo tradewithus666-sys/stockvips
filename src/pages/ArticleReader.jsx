@@ -49,7 +49,12 @@ export default function ArticleReader() {
             b.type === 'image'
               ? <img key={i} className="inline-img" src={b.value} alt="" loading="lazy" />
               : b.type === 'pdf'
-              ? <iframe key={i} className="inline-pdf" src={b.value} title={`pdf-${i}`} />
+              ? (
+                <div key={i}>
+                  <iframe className="inline-pdf" src={`${b.value}#view=FitH`} title={`pdf-${i}`} />
+                  <a className="pdf-open-link" href={b.value} target="_blank" rel="noopener noreferrer">{t('open_pdf_fullscreen')}</a>
+                </div>
+              )
               : <div key={i} className="body-text">{b.value}</div>
           )}
         </div>

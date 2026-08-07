@@ -133,3 +133,12 @@ export async function revokePermission({ memberId, productId }) {
     .eq('product_id', productId);
   if (error) throw error;
 }
+
+export async function adjustMemberBalance({ memberId, amount }) {
+  const { data, error } = await supabase.rpc('admin_adjust_balance', {
+    p_member_id: memberId,
+    p_amount: amount,
+  });
+  if (error) throw error;
+  return data;
+}
