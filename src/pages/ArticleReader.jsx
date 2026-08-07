@@ -48,6 +48,8 @@ export default function ArticleReader() {
           {(article.blocks || []).map((b, i) =>
             b.type === 'image'
               ? <img key={i} className="inline-img" src={b.value} alt="" loading="lazy" />
+              : b.type === 'pdf'
+              ? <iframe key={i} className="inline-pdf" src={b.value} title={`pdf-${i}`} />
               : <div key={i} className="body-text">{b.value}</div>
           )}
         </div>

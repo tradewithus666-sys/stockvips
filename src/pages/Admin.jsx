@@ -132,7 +132,7 @@ function ProductsTab() {
         {t('products_drag_hint')}
       </p>
       {editing && <ProductForm initial={editing === 'new' ? EMPTY_PRODUCT : editing} onSave={handleSave} onCancel={() => setEditing(null)} />}
-      <table>
+      <div className="table-scroll"><table>
         <thead>
           <tr><th></th><th>{t('th_col_product')}</th><th>{t('th_col_type')}</th><th>{t('th_col_price')}</th><th>{t('th_col_sold')}</th><th>{t('th_col_status')}</th><th>{t('th_col_actions')}</th></tr>
         </thead>
@@ -165,7 +165,7 @@ function ProductsTab() {
             </tr>
           ))}
         </tbody>
-      </table>
+      </table></div>
       {!products.length && <div className="empty">{t('no_products_yet')}</div>}
     </div>
   );
@@ -294,7 +294,7 @@ function ArticlesTab() {
             <span className="tag">{t('count_articles', items.length)}</span>
           </div>
           {items.length ? (
-            <table>
+            <div className="table-scroll"><table>
               <thead><tr><th>{t('th_col_title')}</th><th>{t('th_col_publish_date')}</th><th>{t('th_col_actions')}</th></tr></thead>
               <tbody>
                 {items.map((a) => (
@@ -308,7 +308,7 @@ function ArticlesTab() {
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></div>
           ) : (
             <div className="empty" style={{ padding: '18px' }}>{t('no_articles_yet2')}</div>
           )}
@@ -318,7 +318,7 @@ function ArticlesTab() {
       {orphanArticles.length > 0 && (
         <div className="channel-group">
           <div className="channel-group-head"><span>⚠️ {t('th_col_product2')}</span></div>
-          <table>
+          <div className="table-scroll"><table>
             <thead><tr><th>{t('th_col_title')}</th><th>{t('th_col_publish_date')}</th><th>{t('th_col_actions')}</th></tr></thead>
             <tbody>
               {orphanArticles.map((a) => (
@@ -332,7 +332,7 @@ function ArticlesTab() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         </div>
       )}
 
@@ -353,6 +353,7 @@ function ArticleForm({ products, initial, onDone, onCancel }) {
 
   function addTextBlock() { setBlocks([...blocks, { type: 'text', value: '' }]); }
   function addImageBlock() { setBlocks([...blocks, { type: 'image', value: '' }]); }
+  function addPdfBlock() { setBlocks([...blocks, { type: 'pdf', value: '' }]); }
   function removeBlock(idx) { setBlocks(blocks.filter((_, i) => i !== idx)); }
   function moveBlock(idx, dir) {
     const j = idx + dir;
@@ -376,6 +377,17 @@ function ArticleForm({ products, initial, onDone, onCancel }) {
   }
 
   async function handleImageFile(idx, e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const url = await uploadImage(file, 'articles');
+      updateBlock(idx, url);
+    } catch (err) {
+      showToast(t('toast_upload_failed', err.message));
+    }
+  }
+
+  async function handlePdfFile(idx, e) {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
@@ -561,6 +573,14 @@ function ArticleForm({ products, initial, onDone, onCancel }) {
                 <div className="upload-hint">{t('img_row_upload_hint')}</div>
               </div>
             </div>
+          ) : b.type === 'pdf' ? (
+            <div className="img-row" style={{ flex: 1 }}>
+              {b.value ? <div className="badge-icon" style={{ width: 48, height: 48, fontSize: 18 }}>📄</div> : <div className="badge-icon" style={{ width: 48, height: 48, fontSize: 18 }}>📄</div>}
+              <div className="upload-col">
+                <div className="file-input-wrap"><input type="file" accept="application/pdf" onChange={(e) => handlePdfFile(idx, e)} /></div>
+                <div className="upload-hint">{b.value ? b.value.split('/').pop() : t('pdf_row_upload_hint')}</div>
+              </div>
+            </div>
           ) : (
             <textarea value={b.value} onChange={(e) => updateBlock(idx, e.target.value)} placeholder={t('field_body_text_placeholder')} />
           )}
@@ -569,6 +589,7 @@ function ArticleForm({ products, initial, onDone, onCancel }) {
       <div className="row-actions" style={{ marginBottom: 18 }}>
         <button className="btn btn-ghost btn-sm" onClick={addTextBlock}>{t('add_text_block_btn2')}</button>
         <button className="btn btn-ghost btn-sm" onClick={addImageBlock}>{t('add_image_block_btn2')}</button>
+        <button className="btn btn-ghost btn-sm" onClick={addPdfBlock}>{t('add_pdf_block_btn2')}</button>
       </div>
 
       <div className="row-actions">

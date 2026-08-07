@@ -101,9 +101,14 @@ export default function MemberCenter() {
     return (
       <div className="perm-row" key={pm.id} style={{ flexDirection: 'column', alignItems: 'stretch' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 14 }}>
-          <div>
-            <div style={{ fontWeight: 700, fontSize: 14.5 }}>{pm.products?.name}</div>
-            <div className={`expiry-big ${expired ? 'bad' : ''}`}>{t('expires_label')}{pm.expires_at ?? t('permanent_valid')}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            {pm.products?.image
+              ? <img src={pm.products.image} alt="" style={{ width: 44, height: 44, borderRadius: 10, objectFit: 'cover', flexShrink: 0 }} />
+              : <div className="badge-icon" style={{ width: 44, height: 44, fontSize: 18, flexShrink: 0 }}>🏅</div>}
+            <div>
+              <div style={{ fontWeight: 700, fontSize: 14.5 }}>{pm.products?.name}</div>
+              <div className={`expiry-big ${expired ? 'bad' : ''}`}>{t('expires_label')}{pm.expires_at ?? t('permanent_valid')}</div>
+            </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <div className={`status ${expired ? 'expired' : 'valid'}`}>{expired ? t('status_expired') : t('status_valid')}</div>
