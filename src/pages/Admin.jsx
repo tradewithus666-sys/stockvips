@@ -7,6 +7,7 @@ import {
   createArticle, updateArticle, deleteArticle, notifyTelegramArticle,
   fetchCategoriesByProduct, createCategory, deleteCategory,
   fetchAllAnnouncements, createAnnouncement, updateAnnouncement, deleteAnnouncement,
+  fetchHelpContent, updateHelpContent,
 } from '../lib/api';
 import { useToast } from '../lib/ToastContext';
 import { useLang } from '../lib/LangContext';
@@ -29,6 +30,7 @@ export default function Admin() {
           ['products', t('admin_tab_products')],
           ['members', t('admin_tab_members')],
           ['announcements', t('admin_tab_announcements')],
+          ['help', t('admin_tab_help')],
         ].map(([key, label]) => (
           <button
             key={key}
@@ -43,6 +45,7 @@ export default function Admin() {
       {tab === 'articles' && <ArticlesTab />}
       {tab === 'members' && <MembersTab />}
       {tab === 'announcements' && <AnnouncementsTab />}
+      {tab === 'help' && <HelpTab />}
     </div>
   );
 }
@@ -102,6 +105,58 @@ function AnnouncementsTab() {
         </div>
       ))}
       {!list.length && <div className="empty">{t('no_announcements_yet')}</div>}
+    </div>
+  );
+}
+
+/* ---------------- 操作教学内容管理 ---------------- */
+function HelpTab() {
+  const [body, setBody] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const showToast = useToast();
+  const { t } = useLang();
+
+  useEffect(() => {
+    fetchHelpContent().then((data) => { setBody(data?.body || ''); setLoading(false); });
+  }, []);
+
+  async function handleSave() {
+    setSaving(true);
+    try {
+      await updateHelpContent(body);
+      showToast(t('toast_help_saved'));
+    } catch (err) {
+      showToast(err.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleReset() {
+    if (!confirm(t('confirm_reset_help'))) return;
+    setBody('');
+    setSaving(true);
+    try {
+      await updateHelpContent('');
+      showToast(t('toast_help_reset'));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (loading) return <div className="loading-screen">{t('loading')}</div>;
+
+  return (
+    <div>
+      <p style={{ color: 'var(--muted)', fontSize: 12.5, marginBottom: 16 }}>{t('help_edit_hint')}</p>
+      <div className="form-panel">
+        <RichTextEditor value={body} onChange={setBody} />
+        <div className="row-actions" style={{ marginTop: 14 }}>
+          <button className="btn btn-amber" disabled={saving} onClick={handleSave}>{saving ? t('processing') : t('save_btn')}</button>
+          <button className="btn btn-ghost" disabled={saving} onClick={handleReset}>{t('reset_to_default_btn')}</button>
+        </div>
+      </div>
     </div>
   );
 }

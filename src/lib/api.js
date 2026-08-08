@@ -138,6 +138,19 @@ export async function deleteAnnouncement(id) {
   if (error) throw error;
 }
 
+/* ---------- 操作教学内容（管理员可自行编辑） ---------- */
+export async function fetchHelpContent() {
+  const { data, error } = await supabase.from('help_content').select('*').eq('id', 1).maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+export async function updateHelpContent(body) {
+  const { data, error } = await supabase.from('help_content').update({ body, updated_at: new Date().toISOString() }).eq('id', 1).select().single();
+  if (error) throw error;
+  return data;
+}
+
 /* ---------- 会员权限／购买 ---------- */
 export async function fetchMyPermissions(memberId) {
   const { data, error } = await supabase
