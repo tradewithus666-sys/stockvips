@@ -286,7 +286,6 @@ export default function ProductDetail() {
             >
               <div>
                 <div className="ti"><span className="art-date">{formatPublishedAt(a)}</span>{owned ? '' : '🔒 '}{a.title}</div>
-                <div className="sm">{a.summary}</div>
               </div>
             </div>
           ))}
