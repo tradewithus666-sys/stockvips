@@ -47,7 +47,7 @@ export default function Register() {
   if (sent) {
     return (
       <div className="auth-wrap">
-        <div className="auth-logo"><div className="mark">M/C</div></div>
+        <div className="auth-logo"><img className="mark" src="/logo.jpg" alt="StockVIP" /></div>
         <div className="auth-card" style={{ textAlign: 'center' }}>
           <h1 className="display" style={{ fontSize: 20, marginBottom: 10 }}>{t('check_email_title')}</h1>
           <p style={{ color: 'var(--muted)', fontSize: 13.5 }}>
@@ -61,7 +61,7 @@ export default function Register() {
 
   return (
     <div className="auth-wrap">
-      <div className="auth-logo"><div className="mark">M/C</div></div>
+      <div className="auth-logo"><img className="mark" src="/logo.jpg" alt="StockVIP" /></div>
       <div className="auth-title">
         <div className="hero-eyebrow">◆ {t('official_badge')}</div>
         <h1 className="display">{t('register_title')}</h1>

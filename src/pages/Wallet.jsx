@@ -34,7 +34,7 @@ export default function Wallet() {
 
   async function startRecharge() {
     const val = Number(amount);
-    if (!val || val < 5) { showToast(t('toast_recharge_min')); return; }
+    if (!val || val < 1) { showToast(t('toast_recharge_min')); return; }
     setBusy(true);
     try {
       const intent = await createRechargeIntent({ amount: val, address: import.meta.env.VITE_USDT_BEP20_ADDRESS });

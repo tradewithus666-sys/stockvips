@@ -11,7 +11,7 @@ export default function Nav() {
   return (
     <div className="nav">
       <div className="logo" onClick={() => nav('/')}>
-        <div className="mark">M/C</div>
+        <img className="mark" src="/logo.jpg" alt="StockVIP" />
         <div>StockVIP<span className="sub">投资研究所 · TRADING LAB</span></div>
       </div>
       <div className="nav-right">
