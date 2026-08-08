@@ -10,7 +10,7 @@ declare
   v_product record;
   v_resp extensions.http_response;
   BOT_TOKEN text := '8532446508:AAEZbwCjkFScYyTdGYt5MI0xnUgFJvsA2Hc';
-  CHAT_ID text := '-1004440631437';
+  CHAT_ID text := '-1003198568376';
   SITE_URL text := 'https://stockvip.netlify.app';
   v_text text;
   v_link text;

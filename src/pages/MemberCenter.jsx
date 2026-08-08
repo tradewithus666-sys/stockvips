@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { fetchMyPermissions, fetchMyPurchases, fetchArticlesByProduct, purchaseWithBalance } from '../lib/api';
+import { fetchMyPermissions, fetchMyPurchases, fetchArticlesByProduct, purchaseWithBalance, fetchActiveAnnouncements } from '../lib/api';
 import { useAuth } from '../lib/AuthContext';
 import { useToast } from '../lib/ToastContext';
 import { useLang } from '../lib/LangContext';
@@ -51,6 +51,7 @@ export default function MemberCenter() {
   const [perms, setPerms] = useState([]);
   const [purchases, setPurchases] = useState([]);
   const [recentArticles, setRecentArticles] = useState({}); // productId -> articles[]
+  const [announcements, setAnnouncements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [renewingId, setRenewingId] = useState(null);
   const [renewDuration, setRenewDuration] = useState('month');
@@ -58,6 +59,7 @@ export default function MemberCenter() {
 
   useEffect(() => {
     if (!user) { nav('/login'); return; }
+    fetchActiveAnnouncements().then(setAnnouncements).catch(() => {});
     Promise.all([fetchMyPermissions(user.id), fetchMyPurchases(user.id)])
       .then(async ([p, pu]) => {
         setPerms(p);
@@ -177,6 +179,15 @@ export default function MemberCenter() {
           </div>
         </div>
       </div>
+
+      {announcements.length > 0 && (
+        <div className="announcement-box">
+          <div className="announcement-title">📢 {t('announcement_title')}</div>
+          {announcements.map((a) => (
+            <div key={a.id} className="announcement-item">{a.content}</div>
+          ))}
+        </div>
+      )}
 
       <div className="section-title" style={{ marginTop: 30 }}><h2 style={{ fontSize: 18 }}>📡 {t('my_subscriptions')}</h2></div>
       {subPerms.length ? subPerms.map(permRow) : <div className="empty">{t('no_permission_yet')}</div>}

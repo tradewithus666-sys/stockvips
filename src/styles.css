@@ -294,6 +294,11 @@ button{font-family:inherit;cursor:pointer;border:none;}
   padding:12px 14px;margin:12px 0;color:var(--red);font-size:12.5px;font-weight:600;
 }
 .rate-hint{font-size:11.5px;color:var(--muted);text-align:center;margin-top:6px;}
+.promo-box{background:linear-gradient(135deg,rgba(242,169,59,0.15),rgba(242,169,59,0.05));border:1px solid rgba(242,169,59,0.4);border-radius:12px;padding:16px 18px;margin-bottom:16px;}
+.promo-title{font-weight:800;color:var(--amber);font-size:14px;margin-bottom:10px;}
+.promo-item{font-size:13px;color:var(--text);line-height:1.9;}
+.promo-note{font-size:11px;color:var(--muted);margin-top:8px;}
+.promo-badge{position:absolute;bottom:-8px;left:-6px;background:var(--red);color:#fff;font-size:9.5px;font-weight:800;padding:2px 6px;border-radius:100px;}
 .fx-hint{font-size:11px;color:var(--muted);font-weight:500;margin-left:6px;}
 .disclaimer-text{margin-top:28px;padding-top:16px;border-top:1px solid var(--line);font-size:11px;color:var(--muted);line-height:1.8;white-space:pre-line;}
 .off-shelf-banner{background:var(--red-tint);color:var(--red);border:1px solid rgba(226,87,76,0.35);padding:16px;border-radius:12px;font-size:13.5px;font-weight:700;text-align:center;}
@@ -405,6 +410,10 @@ button{font-family:inherit;cursor:pointer;border:none;}
 
 /* ---------- MEMBER CENTER ---------- */
 .info-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-md);padding:22px;margin-bottom:24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;}
+.announcement-box{background:var(--amber-tint);border:1px solid rgba(242,169,59,0.35);border-radius:var(--radius-md);padding:18px 20px;margin-top:22px;}
+.announcement-title{font-weight:700;font-size:13.5px;color:var(--amber);margin-bottom:8px;}
+.announcement-item{font-size:13px;color:var(--text);line-height:1.7;white-space:pre-wrap;padding:6px 0;border-top:1px solid rgba(242,169,59,0.2);}
+.announcement-item:first-of-type{border-top:none;padding-top:0;}
 .info-card .who b{font-size:16px;display:block;}
 .info-card .who span{font-size:12px;color:var(--muted);}
 .session-box{display:flex;align-items:center;gap:10px;background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:10px 16px;}

@@ -9,6 +9,15 @@ import { usdtToHkd } from '../lib/format';
 
 const QUICK_AMOUNTS = [100, 500, 1000, 5000];
 
+// 限时充值优惠：只限 USDT 充值方式，活动到期后自动失效
+const PROMO_DEADLINE = new Date('2026-09-08T00:00:00+08:00');
+const PROMO_TIERS = { 100: 120, 300: 380, 500: 650, 1000: 1350 };
+function getCreditAmount(payAmount) {
+  const val = Number(payAmount);
+  if (new Date() > PROMO_DEADLINE) return val;
+  return PROMO_TIERS[val] ?? val;
+}
+
 export default function Wallet() {
   const { user, profile } = useAuth();
   const nav = useNavigate();
@@ -37,7 +46,11 @@ export default function Wallet() {
     if (!val || val < 1) { showToast(t('toast_recharge_min')); return; }
     setBusy(true);
     try {
-      const intent = await createRechargeIntent({ amount: val, address: import.meta.env.VITE_USDT_BEP20_ADDRESS });
+      const intent = await createRechargeIntent({
+        amount: val,
+        address: import.meta.env.VITE_USDT_BEP20_ADDRESS,
+        creditAmount: getCreditAmount(val),
+      });
       nav(`/pay/${intent.id}`);
     } catch (err) {
       showToast(err.message);
@@ -64,6 +77,18 @@ export default function Wallet() {
 
       <div className="form-panel">
         <div style={{ fontWeight: 700, marginBottom: 14 }}>{t('recharge_wallet')}</div>
+
+        {new Date() < PROMO_DEADLINE && (
+          <div className="promo-box">
+            <div className="promo-title">🎉 {t('promo_title')}</div>
+            <div className="promo-item">🔹 {t('promo_pay')} $100 👉 {t('promo_get')} $120（{t('promo_earn')} $20！）</div>
+            <div className="promo-item">🔹 {t('promo_pay')} $300 👉 {t('promo_get')} $380（{t('promo_earn')} $80！）</div>
+            <div className="promo-item">🔹 {t('promo_pay')} $500 👉 {t('promo_get')} $650（{t('promo_earn')} $150！）</div>
+            <div className="promo-item">🌟 {t('promo_pay')} $1000 👉 {t('promo_get')} $1350（{t('promo_earn_big')} $350！{t('promo_return')} 35%！）</div>
+            <div className="promo-note">{t('promo_usdt_only')} · {t('promo_deadline')} 2026-09-08 00:00</div>
+          </div>
+        )}
+
         <div className="quick-amt-grid">
           {QUICK_AMOUNTS.map((v) => (
             <button
@@ -73,6 +98,7 @@ export default function Wallet() {
             >
               {v}
               {v === 500 && <span className="hot-badge">HOT</span>}
+              {PROMO_TIERS[v] && new Date() < PROMO_DEADLINE && <span className="promo-badge">+{PROMO_TIERS[v] - v}</span>}
             </button>
           ))}
         </div>
@@ -86,7 +112,12 @@ export default function Wallet() {
           />
         </div>
         {Number(amount) > 0 && (
-          <div className="rate-hint">${amount} USDT ≈ ${usdtToHkd(amount)} HKD</div>
+          <div className="rate-hint">
+            ${amount} USDT ≈ ${usdtToHkd(amount)} HKD
+            {getCreditAmount(amount) > Number(amount) && (
+              <span style={{ color: 'var(--amber)', fontWeight: 700 }}> · {t('promo_will_get')} ${getCreditAmount(amount)} USDT！</span>
+            )}
+          </div>
         )}
         <button className="btn btn-amber btn-block" style={{ marginTop: 12 }} disabled={busy} onClick={startRecharge}>
           {busy ? t('processing') : t('recharge_request_btn')}

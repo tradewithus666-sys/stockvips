@@ -6,6 +6,7 @@ import {
   fetchAllMembers, grantPermission, revokePermission, adjustMemberBalance,
   createArticle, updateArticle, deleteArticle, notifyTelegramArticle,
   fetchCategoriesByProduct, createCategory, deleteCategory,
+  fetchAllAnnouncements, createAnnouncement, updateAnnouncement, deleteAnnouncement,
 } from '../lib/api';
 import { useToast } from '../lib/ToastContext';
 import { useLang } from '../lib/LangContext';
@@ -27,6 +28,7 @@ export default function Admin() {
           ['articles', t('admin_tab_articles')],
           ['products', t('admin_tab_products')],
           ['members', t('admin_tab_members')],
+          ['announcements', t('admin_tab_announcements')],
         ].map(([key, label]) => (
           <button
             key={key}
@@ -40,6 +42,66 @@ export default function Admin() {
       {tab === 'products' && <ProductsTab />}
       {tab === 'articles' && <ArticlesTab />}
       {tab === 'members' && <MembersTab />}
+      {tab === 'announcements' && <AnnouncementsTab />}
+    </div>
+  );
+}
+
+function AnnouncementsTab() {
+  const [list, setList] = useState([]);
+  const [content, setContent] = useState('');
+  const [loading, setLoading] = useState(true);
+  const showToast = useToast();
+  const { t } = useLang();
+
+  async function reload() {
+    const data = await fetchAllAnnouncements();
+    setList(data);
+    setLoading(false);
+  }
+  useEffect(() => { reload(); }, []);
+
+  async function handleAdd() {
+    if (!content.trim()) return;
+    await createAnnouncement(content.trim());
+    setContent('');
+    showToast(t('toast_announcement_added'));
+    reload();
+  }
+
+  async function toggleActive(a) {
+    await updateAnnouncement(a.id, { active: !a.active });
+    reload();
+  }
+
+  async function handleDelete(id) {
+    if (!confirm(t('confirm_delete_announcement'))) return;
+    await deleteAnnouncement(id);
+    reload();
+  }
+
+  if (loading) return <div className="loading-screen">{t('loading')}</div>;
+
+  return (
+    <div>
+      <div className="form-panel">
+        <label style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 600, display: 'block', marginBottom: 8 }}>{t('announcement_new_label')}</label>
+        <textarea style={{ minHeight: 90 }} value={content} onChange={(e) => setContent(e.target.value)} placeholder={t('announcement_placeholder')} />
+        <button className="btn btn-amber" style={{ marginTop: 10 }} onClick={handleAdd}>{t('announcement_publish_btn')}</button>
+      </div>
+      {list.map((a) => (
+        <div className="member-card" key={a.id}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start' }}>
+            <div style={{ fontSize: 13.5, whiteSpace: 'pre-wrap', flex: 1 }}>{a.content}</div>
+            <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+              <button className="btn btn-ghost btn-sm" onClick={() => toggleActive(a)}>{a.active ? t('announcement_hide_btn') : t('announcement_show_btn')}</button>
+              <div className="icon-btn" onClick={() => handleDelete(a.id)}>🗑</div>
+            </div>
+          </div>
+          <span className={`pill ${a.active ? '' : 'off'}`} style={{ marginTop: 8, display: 'inline-block' }}>{a.active ? t('status_active') : t('status_off')}</span>
+        </div>
+      ))}
+      {!list.length && <div className="empty">{t('no_announcements_yet')}</div>}
     </div>
   );
 }
@@ -90,17 +152,21 @@ function ProductsTab() {
     reload();
   }
 
-  async function onDrop(targetId) {
+  async function onDrop(type, targetId) {
     if (!dragId || dragId === targetId) return;
-    const items = [...products];
-    const fromIdx = items.findIndex((p) => p.id === dragId);
-    const toIdx = items.findIndex((p) => p.id === targetId);
-    const [moved] = items.splice(fromIdx, 1);
-    items.splice(toIdx, 0, moved);
-    setProducts(items);
+    const subset = products.filter((p) => p.type === type);
+    if (!subset.some((p) => p.id === dragId)) return; // 只允许同类型内拖曳排序
+    const fromIdx = subset.findIndex((p) => p.id === dragId);
+    const toIdx = subset.findIndex((p) => p.id === targetId);
+    const [moved] = subset.splice(fromIdx, 1);
+    subset.splice(toIdx, 0, moved);
+    setProducts((prev) => {
+      const others = prev.filter((p) => p.type !== type);
+      return [...others, ...subset].sort((a, b) => prev.indexOf(a) - prev.indexOf(b));
+    });
     setDragId(null);
     try {
-      await reorderProducts(items);
+      await reorderProducts(subset);
     } catch (err) {
       showToast(t('toast_sort_failed', err.message));
       reload();
@@ -108,15 +174,16 @@ function ProductsTab() {
   }
 
   // 手机／触控装置不支援原生 HTML5 拖曳（draggable + ondragstart 只有滑鼠才有效），
-  // 所以另外补上「上移／下移」按钮，任何装置都能用来调整顺序。
-  async function moveProduct(index, dir) {
+  // 所以另外补上「上移／下移」按钮，任何装置都能用来调整顺序。同类型内移动。
+  async function moveProduct(type, index, dir) {
+    const subset = products.filter((p) => p.type === type);
     const target = index + dir;
-    if (target < 0 || target >= products.length) return;
-    const items = [...products];
-    [items[index], items[target]] = [items[target], items[index]];
-    setProducts(items);
+    if (target < 0 || target >= subset.length) return;
+    [subset[index], subset[target]] = [subset[target], subset[index]];
+    reload();
     try {
-      await reorderProducts(items);
+      await reorderProducts(subset);
+      reload();
     } catch (err) {
       showToast(t('toast_sort_failed', err.message));
       reload();
@@ -124,6 +191,12 @@ function ProductsTab() {
   }
 
   if (loading) return <div className="loading-screen">{t('loading')}</div>;
+
+  const TYPE_GROUPS = [
+    ['course', t('type_course')],
+    ['subscription', t('type_subscription')],
+    ['shared', t('type_shared')],
+  ];
 
   return (
     <div>
@@ -136,65 +209,76 @@ function ProductsTab() {
       </p>
       {editing && <ProductForm initial={editing === 'new' ? EMPTY_PRODUCT : editing} onSave={handleSave} onCancel={() => setEditing(null)} />}
 
-      {/* 桌面版：表格 */}
-      <div className="table-scroll desktop-only"><table>
-        <thead>
-          <tr><th></th><th>{t('th_col_product')}</th><th>{t('th_col_type')}</th><th>{t('th_col_price')}</th><th>{t('th_col_sold')}</th><th>{t('th_col_status')}</th><th>{t('th_col_actions')}</th></tr>
-        </thead>
-        <tbody>
-          {products.map((p, idx) => (
-            <tr
-              key={p.id}
-              draggable
-              onDragStart={() => setDragId(p.id)}
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={() => onDrop(p.id)}
-            >
-              <td className="drag-handle-cell">
-                <span className="drag-handle">⠿</span>
-                <div className="reorder-btns">
-                  <button type="button" disabled={idx === 0} onClick={() => moveProduct(idx, -1)}>▲</button>
-                  <button type="button" disabled={idx === products.length - 1} onClick={() => moveProduct(idx, 1)}>▼</button>
+      {TYPE_GROUPS.map(([type, label]) => {
+        const subset = products.filter((p) => p.type === type);
+        return (
+          <div key={type} className="channel-group">
+            <div className="channel-group-head">
+              <span>{type === 'course' ? '🎓' : type === 'subscription' ? '📡' : '🔑'} {label}</span>
+              <span className="tag">{subset.length}</span>
+            </div>
+
+            {/* 桌面版：表格 */}
+            <div className="table-scroll desktop-only"><table>
+              <thead>
+                <tr><th></th><th>{t('th_col_product')}</th><th>{t('th_col_price')}</th><th>{t('th_col_sold')}</th><th>{t('th_col_status')}</th><th>{t('th_col_actions')}</th></tr>
+              </thead>
+              <tbody>
+                {subset.map((p, idx) => (
+                  <tr
+                    key={p.id}
+                    draggable
+                    onDragStart={() => setDragId(p.id)}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={() => onDrop(type, p.id)}
+                  >
+                    <td className="drag-handle-cell">
+                      <span className="drag-handle">⠿</span>
+                      <div className="reorder-btns">
+                        <button type="button" disabled={idx === 0} onClick={() => moveProduct(type, idx, -1)}>▲</button>
+                        <button type="button" disabled={idx === subset.length - 1} onClick={() => moveProduct(type, idx, 1)}>▼</button>
+                      </div>
+                    </td>
+                    <td>{p.name}</td>
+                    <td className="mono">${p.price} HKD</td>
+                    <td className="mono">{(p.base_sold ?? 0) + (p.sold ?? 0)}</td>
+                    <td><span className={`pill ${p.status === 'off' ? 'off' : ''}`}>{p.status === 'off' ? t('status_off') : t('status_active')}</span></td>
+                    <td className="row-actions">
+                      <div className="icon-btn" onClick={() => setEditing(p)}>✎</div>
+                      <div className="icon-btn" onClick={() => handleToggle(p)}>{p.status === 'off' ? '↑' : '↓'}</div>
+                      <div className="icon-btn" onClick={() => handleDelete(p.id)}>🗑</div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table></div>
+
+            {/* 手机版：卡片式排版，避免表格在窄屏被挤压、操作图示太密集容易误触 */}
+            <div className="mobile-only">
+              {subset.map((p, idx) => (
+                <div className="product-mcard" key={p.id}>
+                  <div className="product-mcard-top">
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: 14.5 }}>{p.name}</div>
+                      <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>${p.price} HKD · {t('th_col_sold')} {(p.base_sold ?? 0) + (p.sold ?? 0)}</div>
+                    </div>
+                    <span className={`pill ${p.status === 'off' ? 'off' : ''}`}>{p.status === 'off' ? t('status_off') : t('status_active')}</span>
+                  </div>
+                  <div className="product-mcard-actions">
+                    <button className="btn btn-ghost btn-sm" disabled={idx === 0} onClick={() => moveProduct(type, idx, -1)}>▲ {t('move_up')}</button>
+                    <button className="btn btn-ghost btn-sm" disabled={idx === subset.length - 1} onClick={() => moveProduct(type, idx, 1)}>▼ {t('move_down')}</button>
+                    <button className="btn btn-ghost btn-sm" onClick={() => setEditing(p)}>✎ {t('edit_btn')}</button>
+                    <button className="btn btn-ghost btn-sm" onClick={() => handleToggle(p)}>{p.status === 'off' ? `↑ ${t('status_active')}` : `↓ ${t('status_off')}`}</button>
+                    <button className="btn btn-danger btn-sm" onClick={() => handleDelete(p.id)}>🗑 {t('delete_title')}</button>
+                  </div>
                 </div>
-              </td>
-              <td>{p.name}</td>
-              <td>{p.type}</td>
-              <td className="mono">${p.price} HKD</td>
-              <td className="mono">{(p.base_sold ?? 0) + (p.sold ?? 0)}</td>
-              <td><span className={`pill ${p.status === 'off' ? 'off' : ''}`}>{p.status === 'off' ? t('status_off') : t('status_active')}</span></td>
-              <td className="row-actions">
-                <div className="icon-btn" onClick={() => setEditing(p)}>✎</div>
-                <div className="icon-btn" onClick={() => handleToggle(p)}>{p.status === 'off' ? '↑' : '↓'}</div>
-                <div className="icon-btn" onClick={() => handleDelete(p.id)}>🗑</div>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table></div>
+              ))}
+            </div>
 
-      {/* 手机版：卡片式排版，避免表格在窄屏被挤压、操作图示太密集容易误触 */}
-      <div className="mobile-only">
-        {products.map((p, idx) => (
-          <div className="product-mcard" key={p.id}>
-            <div className="product-mcard-top">
-              <div>
-                <div style={{ fontWeight: 700, fontSize: 14.5 }}>{p.name}</div>
-                <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>{p.type} · ${p.price} HKD · {t('th_col_sold')} {(p.base_sold ?? 0) + (p.sold ?? 0)}</div>
-              </div>
-              <span className={`pill ${p.status === 'off' ? 'off' : ''}`}>{p.status === 'off' ? t('status_off') : t('status_active')}</span>
-            </div>
-            <div className="product-mcard-actions">
-              <button className="btn btn-ghost btn-sm" disabled={idx === 0} onClick={() => moveProduct(idx, -1)}>▲ {t('move_up')}</button>
-              <button className="btn btn-ghost btn-sm" disabled={idx === products.length - 1} onClick={() => moveProduct(idx, 1)}>▼ {t('move_down')}</button>
-              <button className="btn btn-ghost btn-sm" onClick={() => setEditing(p)}>✎ {t('edit_btn')}</button>
-              <button className="btn btn-ghost btn-sm" onClick={() => handleToggle(p)}>{p.status === 'off' ? `↑ ${t('status_active')}` : `↓ ${t('status_off')}`}</button>
-              <button className="btn btn-danger btn-sm" onClick={() => handleDelete(p.id)}>🗑 {t('delete_title')}</button>
-            </div>
+            {!subset.length && <div className="empty" style={{ padding: 18 }}>{t('no_products_yet')}</div>}
           </div>
-        ))}
-      </div>
-
-      {!products.length && <div className="empty">{t('no_products_yet')}</div>}
+        );
+      })}
     </div>
   );
 }
@@ -834,6 +918,9 @@ function MembersTab() {
   const [grantFor, setGrantFor] = useState(null);
   const [balanceFor, setBalanceFor] = useState(null);
   const [balanceAmount, setBalanceAmount] = useState('');
+  const [txFor, setTxFor] = useState(null);
+  const [txList, setTxList] = useState([]);
+  const [txLoading, setTxLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const showToast = useToast();
   const { t } = useLang();
@@ -848,8 +935,8 @@ function MembersTab() {
 
   const filtered = search ? members.filter((m) => m.email.toLowerCase().includes(search.toLowerCase())) : members;
 
-  async function handleGrant(memberId, productId, days) {
-    await grantPermission({ memberId, productId, days: days ? Number(days) : null });
+  async function handleGrant(memberId, productId, days, exactDate) {
+    await grantPermission({ memberId, productId, days: days ? Number(days) : null, exactDate: exactDate || null });
     setGrantFor(null);
     showToast(t('toast_permission_granted'));
     reload();
@@ -869,6 +956,19 @@ function MembersTab() {
     setBalanceAmount('');
     showToast(t('toast_balance_adjusted'));
     reload();
+  }
+
+  async function toggleTxHistory(memberId) {
+    if (txFor === memberId) { setTxFor(null); return; }
+    setTxFor(memberId);
+    setTxLoading(true);
+    const { data } = await supabase
+      .from('wallet_tx')
+      .select('*')
+      .eq('member_id', memberId)
+      .order('created_at', { ascending: false });
+    setTxList(data || []);
+    setTxLoading(false);
   }
 
   if (loading) return <div className="loading-screen">{t('loading')}</div>;
@@ -891,6 +991,7 @@ function MembersTab() {
             </div>
             <button className="btn btn-ghost btn-sm" onClick={() => setGrantFor(grantFor === m.id ? null : m.id)}>{t('grant_permission_btn2')}</button>
             <button className="btn btn-ghost btn-sm" onClick={() => setBalanceFor(balanceFor === m.id ? null : m.id)}>{t('adjust_balance_btn')}</button>
+            <button className="btn btn-ghost btn-sm" onClick={() => toggleTxHistory(m.id)}>{t('tx_history_btn')}</button>
           </div>
           <div className="chip-list">
             {(m.permissions || []).length ? m.permissions.map((pm) => (
@@ -900,11 +1001,24 @@ function MembersTab() {
               </div>
             )) : <span style={{ color: 'var(--muted)', fontSize: 12 }}>—</span>}
           </div>
-          {grantFor === m.id && <GrantForm products={products} onGrant={(pid, days) => handleGrant(m.id, pid, days)} />}
+          {grantFor === m.id && <GrantForm products={products} onGrant={(pid, days, exactDate) => handleGrant(m.id, pid, days, exactDate)} />}
           {balanceFor === m.id && (
             <div style={{ marginTop: 14, display: 'flex', gap: 10, alignItems: 'center' }}>
               <input type="number" style={{ maxWidth: 160 }} value={balanceAmount} onChange={(e) => setBalanceAmount(e.target.value)} placeholder="100 / -50" />
               <button className="btn btn-amber btn-sm" onClick={() => handleAdjustBalance(m.id)}>{t('confirm_adjust_btn')}</button>
+            </div>
+          )}
+          {txFor === m.id && (
+            <div style={{ marginTop: 14, borderTop: '1px solid var(--line)', paddingTop: 12 }}>
+              {txLoading ? (
+                <div style={{ fontSize: 12, color: 'var(--muted)' }}>{t('loading')}</div>
+              ) : txList.length ? txList.map((tx) => (
+                <div key={tx.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, padding: '6px 0', borderBottom: '1px solid var(--line)' }}>
+                  <span>+{tx.amount} USDT</span>
+                  <span style={{ color: 'var(--muted)' }}>{new Date(tx.created_at).toLocaleString()}</span>
+                  <span className="pill">{tx.status}</span>
+                </div>
+              )) : <div style={{ fontSize: 12, color: 'var(--muted)' }}>{t('no_tx_yet')}</div>}
             </div>
           )}
         </div>
@@ -916,7 +1030,26 @@ function MembersTab() {
 function GrantForm({ products, onGrant }) {
   const [productId, setProductId] = useState(products[0]?.id || '');
   const [days, setDays] = useState('');
+  const [exactDate, setExactDate] = useState('');
   const { t } = useLang();
+
+  function parseExactDate(str) {
+    // 接受 20271020 这种 YYYYMMDD 格式，转成 2027-10-20
+    const m = /^(\d{4})(\d{2})(\d{2})$/.exec(str.trim());
+    if (!m) return null;
+    return `${m[1]}-${m[2]}-${m[3]}`;
+  }
+
+  function handleSubmit() {
+    if (exactDate.trim()) {
+      const parsed = parseExactDate(exactDate);
+      if (!parsed) { alert(t('exact_date_format_error')); return; }
+      onGrant(productId, null, parsed);
+    } else {
+      onGrant(productId, days, null);
+    }
+  }
+
   return (
     <div style={{ marginTop: 14 }}>
       <div className="form-grid">
@@ -928,15 +1061,20 @@ function GrantForm({ products, onGrant }) {
         </div>
         <div className="field">
           <label>{t('field_grant_days2')}</label>
-          <input type="number" value={days} onChange={(e) => setDays(e.target.value)} placeholder="30" />
+          <input type="number" value={days} onChange={(e) => { setDays(e.target.value); setExactDate(''); }} placeholder="30" />
           <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
             {[30, 90, 365].map((d) => (
-              <button key={d} type="button" className={`quick-day-btn ${String(d) === days ? 'active' : ''}`} onClick={() => setDays(String(d))}>{d}{t('days_unit')}</button>
+              <button key={d} type="button" className={`quick-day-btn ${String(d) === days ? 'active' : ''}`} onClick={() => { setDays(String(d)); setExactDate(''); }}>{d}{t('days_unit')}</button>
             ))}
           </div>
         </div>
+        <div className="field" style={{ gridColumn: '1/-1' }}>
+          <label>{t('field_exact_date')}</label>
+          <input value={exactDate} onChange={(e) => { setExactDate(e.target.value); setDays(''); }} placeholder="20271020" maxLength={8} />
+          <div className="upload-hint">{t('exact_date_hint')}</div>
+        </div>
       </div>
-      <button className="btn btn-amber" onClick={() => onGrant(productId, days)}>{t('confirm_grant_btn2')}</button>
+      <button className="btn btn-amber" onClick={handleSubmit}>{t('confirm_grant_btn2')}</button>
     </div>
   );
 }

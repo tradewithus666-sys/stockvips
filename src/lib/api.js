@@ -104,6 +104,40 @@ export async function deleteCategory(id) {
   if (error) throw error;
 }
 
+/* ---------- 会员中心公告 ---------- */
+export async function fetchActiveAnnouncements() {
+  const { data, error } = await supabase
+    .from('announcements')
+    .select('*')
+    .eq('active', true)
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return data;
+}
+
+export async function fetchAllAnnouncements() {
+  const { data, error } = await supabase.from('announcements').select('*').order('created_at', { ascending: false });
+  if (error) throw error;
+  return data;
+}
+
+export async function createAnnouncement(content) {
+  const { data, error } = await supabase.from('announcements').insert({ content }).select().single();
+  if (error) throw error;
+  return data;
+}
+
+export async function updateAnnouncement(id, payload) {
+  const { data, error } = await supabase.from('announcements').update(payload).eq('id', id).select().single();
+  if (error) throw error;
+  return data;
+}
+
+export async function deleteAnnouncement(id) {
+  const { error } = await supabase.from('announcements').delete().eq('id', id);
+  if (error) throw error;
+}
+
 /* ---------- 会员权限／购买 ---------- */
 export async function fetchMyPermissions(memberId) {
   const { data, error } = await supabase
@@ -147,8 +181,8 @@ export async function fetchAllMembers() {
   return data;
 }
 
-export async function grantPermission({ memberId, productId, days }) {
-  const expiresAt = days ? new Date(Date.now() + days * 86400000).toISOString().slice(0, 10) : null;
+export async function grantPermission({ memberId, productId, days, exactDate }) {
+  const expiresAt = exactDate ? exactDate : (days ? new Date(Date.now() + days * 86400000).toISOString().slice(0, 10) : null);
   const { data, error } = await supabase
     .from('permissions')
     .upsert({ member_id: memberId, product_id: productId, expires_at: expiresAt }, { onConflict: 'member_id,product_id' })
@@ -187,10 +221,11 @@ export async function createPaymentIntent({ productId, duration, amount, address
   return data;
 }
 
-export async function createRechargeIntent({ amount, address }) {
+export async function createRechargeIntent({ amount, address, creditAmount }) {
   const { data, error } = await supabase.rpc('create_recharge_intent', {
     p_amount: amount,
     p_address: address,
+    p_credit_amount: creditAmount || null,
   });
   if (error) throw error;
   return data;
