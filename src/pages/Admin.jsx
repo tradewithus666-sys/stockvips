@@ -5,6 +5,7 @@ import {
   fetchProducts, createProduct, updateProduct, deleteProduct, reorderProducts,
   fetchAllMembers, grantPermission, revokePermission, adjustMemberBalance,
   createArticle, updateArticle, deleteArticle, notifyTelegramArticle,
+  fetchCategoriesByProduct, createCategory, deleteCategory,
 } from '../lib/api';
 import { useToast } from '../lib/ToastContext';
 import { useLang } from '../lib/LangContext';
@@ -404,8 +405,18 @@ function ArticlesTab() {
 // 单一频道管理页：进入后只看到该频道自己的文章，未来可以在这里加频道公告、封面编辑、自动发布排程等功能而不影响目录页
 function ChannelDetail({ product, articles, products, onBack, onChanged }) {
   const [editingId, setEditingId] = useState(null); // null | 'new' | article.id
+  const [categories, setCategories] = useState([]);
+  const [newCatName, setNewCatName] = useState('');
+  const [loadingCats, setLoadingCats] = useState(true);
   const showToast = useToast();
   const { t } = useLang();
+
+  async function loadCategories() {
+    const list = await fetchCategoriesByProduct(product.id);
+    setCategories(list);
+    setLoadingCats(false);
+  }
+  useEffect(() => { loadCategories(); }, [product.id]);
 
   async function handleDelete(id) {
     if (!confirm(t('confirm_delete_article2'))) return;
@@ -413,7 +424,21 @@ function ChannelDetail({ product, articles, products, onBack, onChanged }) {
     onChanged();
   }
 
+  async function handleAddCategory() {
+    if (!newCatName.trim()) return;
+    await createCategory({ productId: product.id, name: newCatName.trim() });
+    setNewCatName('');
+    loadCategories();
+  }
+
+  async function handleDeleteCategory(id) {
+    if (!confirm(t('confirm_delete_category'))) return;
+    await deleteCategory(id);
+    loadCategories();
+  }
+
   const editingArticle = editingId && editingId !== 'new' ? articles.find((a) => a.id === editingId) : null;
+  const catName = (id) => categories.find((c) => c.id === id)?.name || t('category_none');
 
   return (
     <div>
@@ -429,6 +454,23 @@ function ChannelDetail({ product, articles, products, onBack, onChanged }) {
         </div>
       </div>
 
+      <div className="form-panel">
+        <div style={{ fontWeight: 700, marginBottom: 10 }}>{t('category_manage_title')}</div>
+        <div className="chip-list" style={{ marginBottom: 10 }}>
+          {categories.map((c) => (
+            <div className="chip valid" key={c.id}>
+              {c.name}
+              <span style={{ cursor: 'pointer' }} onClick={() => handleDeleteCategory(c.id)}>✕</span>
+            </div>
+          ))}
+          {!loadingCats && !categories.length && <span style={{ color: 'var(--muted)', fontSize: 12 }}>{t('no_categories_yet')}</span>}
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <input style={{ maxWidth: 220 }} placeholder={t('category_name_placeholder')} value={newCatName} onChange={(e) => setNewCatName(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') handleAddCategory(); }} />
+          <button className="btn btn-ghost btn-sm" onClick={handleAddCategory}>{t('add_category_btn')}</button>
+        </div>
+      </div>
+
       <div className="admin-header">
         <div />
         <button className="btn btn-amber" onClick={() => setEditingId('new')}>{t('publish_new_article_btn2')}</button>
@@ -438,6 +480,7 @@ function ChannelDetail({ product, articles, products, onBack, onChanged }) {
         <ArticleForm
           key={editingId}
           products={products}
+          categories={categories}
           initial={editingArticle}
           fixedProductId={product.id}
           onDone={() => { setEditingId(null); onChanged(); showToast(editingArticle ? t('toast_article_saved') : t('toast_article_published')); }}
@@ -447,11 +490,12 @@ function ChannelDetail({ product, articles, products, onBack, onChanged }) {
 
       {articles.length ? (
         <div className="table-scroll"><table>
-          <thead><tr><th>{t('th_col_title')}</th><th>{t('th_col_publish_date')}</th><th>{t('th_col_actions')}</th></tr></thead>
+          <thead><tr><th>{t('th_col_title')}</th><th>{t('category_col')}</th><th>{t('th_col_publish_date')}</th><th>{t('th_col_actions')}</th></tr></thead>
           <tbody>
             {articles.map((a) => (
               <tr key={a.id}>
                 <td>{a.title}</td>
+                <td>{catName(a.category_id)}</td>
                 <td>{formatPublishedAt(a)}</td>
                 <td className="row-actions">
                   <div className="icon-btn" onClick={() => setEditingId(a.id)}>✎</div>
@@ -468,16 +512,26 @@ function ChannelDetail({ product, articles, products, onBack, onChanged }) {
   );
 }
 
-function ArticleForm({ products, initial, onDone, onCancel, fixedProductId }) {
+function ArticleForm({ products, categories = [], initial, onDone, onCancel, fixedProductId }) {
   const [title, setTitle] = useState(initial?.title || '');
   const [productId, setProductId] = useState(initial?.product_id || fixedProductId || products[0]?.id || '');
-  const [summary, setSummary] = useState(initial?.summary || '');
+  const [categoryId, setCategoryId] = useState(initial?.category_id || '');
+  const [localCategories, setLocalCategories] = useState(categories);
+  const [newCatName, setNewCatName] = useState('');
   const [blocks, setBlocks] = useState(initial?.blocks?.length ? initial.blocks : [{ type: 'text', value: '' }]);
   const [dragIdx, setDragIdx] = useState(null);
   const [pasting, setPasting] = useState(false);
   const [syncTelegram, setSyncTelegram] = useState(!initial); // 新增文章预设打勾，编辑既有文章预设不勾（避免改错字就重复发通知）
   const showToast = useToast();
   const { t } = useLang();
+
+  async function handleQuickAddCategory() {
+    if (!newCatName.trim() || !productId) return;
+    const created = await createCategory({ productId, name: newCatName.trim() });
+    setLocalCategories([...localCategories, created]);
+    setCategoryId(created.id);
+    setNewCatName('');
+  }
 
   function addTextBlock() { setBlocks([...blocks, { type: 'text', value: '' }]); }
   function addImageBlock() { setBlocks([...blocks, { type: 'image', value: '' }]); }
@@ -636,9 +690,9 @@ function ArticleForm({ products, initial, onDone, onCancel, fixedProductId }) {
     try {
       let saved;
       if (initial) {
-        saved = await updateArticle(initial.id, { title, product_id: productId, summary, blocks: cleanBlocks });
+        saved = await updateArticle(initial.id, { title, product_id: productId, category_id: categoryId || null, blocks: cleanBlocks });
       } else {
-        saved = await createArticle({ title, product_id: productId, summary, blocks: cleanBlocks });
+        saved = await createArticle({ title, product_id: productId, category_id: categoryId || null, blocks: cleanBlocks });
       }
       if (syncTelegram) {
         try { await notifyTelegramArticle(saved.id); } catch (err) { showToast(t('toast_telegram_notify_failed', err.message)); }
@@ -675,9 +729,16 @@ function ArticleForm({ products, initial, onDone, onCancel, fixedProductId }) {
             </select>
           </div>
         )}
-        <div className="field" style={{ gridColumn: '1/-1' }}>
-          <label>{t('field_summary2')}</label>
-          <input value={summary} onChange={(e) => setSummary(e.target.value)} />
+        <div className="field">
+          <label>{t('field_article_category')}</label>
+          <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
+            <option value="">{t('category_none')}</option>
+            {localCategories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+          <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+            <input placeholder={t('category_name_placeholder')} value={newCatName} onChange={(e) => setNewCatName(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleQuickAddCategory(); } }} />
+            <button type="button" className="btn btn-ghost btn-sm" onClick={handleQuickAddCategory}>{t('add_category_btn')}</button>
+          </div>
         </div>
       </div>
 

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
-import { fetchArticlesByProduct } from '../lib/api';
+import { fetchArticlesByProduct, fetchCategoriesByProduct } from '../lib/api';
 import { useAuth } from '../lib/AuthContext';
 import { useToast } from '../lib/ToastContext';
 import { useLang } from '../lib/LangContext';
@@ -15,6 +15,8 @@ export default function ProductFeed() {
   const { t } = useLang();
   const [product, setProduct] = useState(null);
   const [articles, setArticles] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [activeCat, setActiveCat] = useState('all');
   const [owned, setOwned] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -25,8 +27,8 @@ export default function ProductFeed() {
       const { data: p } = await supabase.from('products').select('*').eq('id', id).single();
       if (!mounted) return;
       setProduct(p);
-      const list = await fetchArticlesByProduct(id);
-      if (mounted) setArticles(list);
+      const [list, cats] = await Promise.all([fetchArticlesByProduct(id), fetchCategoriesByProduct(id)]);
+      if (mounted) { setArticles(list); setCategories(cats); }
       if (user) {
         const { data: perm } = await supabase
           .from('permissions').select('*').eq('member_id', user.id).eq('product_id', id).maybeSingle();
@@ -42,6 +44,8 @@ export default function ProductFeed() {
   if (loading) return <div className="loading-screen">{t('loading')}</div>;
   if (!product) return <div className="empty">{t('product_not_found')}</div>;
 
+  const filteredArticles = activeCat === 'all' ? articles : articles.filter((a) => a.category_id === activeCat);
+
   return (
     <div>
       <div className="breadcrumb">{t('breadcrumb_home')} » <b>{product.name}</b></div>
@@ -56,22 +60,33 @@ export default function ProductFeed() {
         </div>
       </div>
 
-      <div className="section-title"><h2>{t('all_articles')}</h2><span className="tag">{t('count_articles', articles.length)}</span></div>
-      {articles.length === 0 && <div className="empty">{t('article_none')}</div>}
+      {categories.length > 0 && (
+        <div className="filter-chip-row">
+          <button className={`filter-chip ${activeCat === 'all' ? 'active' : ''}`} onClick={() => setActiveCat('all')}>{t('category_all')}</button>
+          {categories.map((c) => (
+            <button key={c.id} className={`filter-chip ${activeCat === c.id ? 'active' : ''}`} onClick={() => setActiveCat(c.id)}>{c.name}</button>
+          ))}
+        </div>
+      )}
+
+      <div className="section-title"><h2>{t('all_articles')}</h2><span className="tag">{t('count_articles', filteredArticles.length)}</span></div>
+      {filteredArticles.length === 0 && <div className="empty">{t('article_none')}</div>}
       <div className={owned ? '' : 'article-feed-locked'}>
-        {articles.map((a) => (
+        {filteredArticles.map((a) => (
           <div
             key={a.id}
             className="article-item"
             onClick={() => owned ? nav(`/article/${a.id}`) : showToast(t('locked_read_prompt'))}
           >
             <div>
-              <div className="ti"><span className="art-date">{formatPublishedAt(a)}</span>{owned ? '' : '🔒 '}{a.title}</div>
-              <div className="sm">{a.summary}</div>
+              <div className="ti">
+                <span className="art-date">{formatPublishedAt(a)}</span>
+                {owned ? '' : '🔒 '}{a.title}
+              </div>
             </div>
           </div>
         ))}
-        {!owned && articles.length > 0 && (
+        {!owned && filteredArticles.length > 0 && (
           <div className="feed-lock-overlay">
             <div style={{ fontSize: 24 }}>🔒</div>
             <div style={{ fontSize: 13, fontWeight: 700 }}>{t('feed_lock_text')}</div>

@@ -78,6 +78,32 @@ export async function notifyTelegramArticle(articleId) {
   return data;
 }
 
+/* ---------- 文章分类 ---------- */
+export async function fetchCategoriesByProduct(productId) {
+  const { data, error } = await supabase
+    .from('article_categories')
+    .select('*')
+    .eq('product_id', productId)
+    .order('sort_order', { ascending: true });
+  if (error) throw error;
+  return data;
+}
+
+export async function createCategory({ productId, name }) {
+  const { data, error } = await supabase
+    .from('article_categories')
+    .insert({ product_id: productId, name })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function deleteCategory(id) {
+  const { error } = await supabase.from('article_categories').delete().eq('id', id);
+  if (error) throw error;
+}
+
 /* ---------- 会员权限／购买 ---------- */
 export async function fetchMyPermissions(memberId) {
   const { data, error } = await supabase
