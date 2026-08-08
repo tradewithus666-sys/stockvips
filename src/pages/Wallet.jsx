@@ -5,6 +5,7 @@ import { createRechargeIntent } from '../lib/api';
 import { useAuth } from '../lib/AuthContext';
 import { useToast } from '../lib/ToastContext';
 import { useLang } from '../lib/LangContext';
+import { usdtToHkd } from '../lib/format';
 
 const QUICK_AMOUNTS = [100, 500, 1000, 5000];
 
@@ -56,8 +57,8 @@ export default function Wallet() {
         <div className="wbc-icon">💳</div>
         <div>
           <div className="wbc-label">{t('available_balance')}</div>
-          <div className="wbc-amount">{(profile?.balance ?? 0).toFixed(2)} HKD</div>
-          <div className="wbc-usd">≈ ${(profile?.balance ?? 0).toFixed(2)} HKD</div>
+          <div className="wbc-amount">{(profile?.balance ?? 0).toFixed(2)} USDT</div>
+          <div className="wbc-usd">≈ {usdtToHkd(profile?.balance ?? 0)} HKD</div>
         </div>
       </div>
 
@@ -84,6 +85,9 @@ export default function Wallet() {
             onKeyDown={(e) => { if (e.key === 'Enter') startRecharge(); }}
           />
         </div>
+        {Number(amount) > 0 && (
+          <div className="rate-hint">${amount} USDT ≈ ${usdtToHkd(amount)} HKD</div>
+        )}
         <button className="btn btn-amber btn-block" style={{ marginTop: 12 }} disabled={busy} onClick={startRecharge}>
           {busy ? t('processing') : t('recharge_request_btn')}
         </button>

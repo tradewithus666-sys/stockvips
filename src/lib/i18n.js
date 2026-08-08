@@ -100,7 +100,7 @@ export const DICT = {
     wallet_breadcrumb: '首頁 » 會員中心 » 我的錢包',
     toast_recharge_min: '最低充值金額為 5 USDT',
     toast_recharge_request: (val) => `請轉帳 ${val} USDT 至上方地址，並透過 Telegram 提供轉帳截圖告知客服，核實後將為你加值`,
-    recharge_request_btn: '🔵 轉帳後聯繫客服充值',
+    recharge_request_btn: '⚡ 立即充值',
     network_note_manual: '支持 TRC-20, BEP-20 網絡 · 轉帳後由客服人工核實加值', network_note: '支持 BEP-20 網絡 · 轉帳後系統自動偵測到帳',
     // Admin
     admin_title: '管理後台', admin_tab_products: '商品管理', admin_tab_articles: '內容管理', admin_tab_members: '會員與權限',
@@ -238,7 +238,7 @@ export const DICT = {
     wallet_breadcrumb: '首页 » 会员中心 » 我的钱包',
     toast_recharge_min: '最低充值金额为 5 USDT',
     toast_recharge_request: (val) => `请转帐 ${val} USDT 至上方地址，并透过 Telegram 提供转帐截图告知客服，核实后将为你加值`,
-    recharge_request_btn: '🔵 转帐后联系客服充值',
+    recharge_request_btn: '⚡ 立即充值',
     network_note_manual: '支持 TRC-20, BEP-20 网络 · 转帐后由客服人工核实加值', network_note: '支持 BEP-20 网络 · 转帐后系统自动侦测到帐',
     // Admin
     admin_title: '管理后台', admin_tab_products: '商品管理', admin_tab_articles: '内容管理', admin_tab_members: '会员与权限',
@@ -376,7 +376,7 @@ export const DICT = {
     wallet_breadcrumb: 'Home » Member Center » My Wallet',
     toast_recharge_min: 'Minimum recharge amount is 5 USDT',
     toast_recharge_request: (val) => `Please transfer ${val} USDT to the address above, then send a screenshot via Telegram to support — your balance will be credited once verified`,
-    recharge_request_btn: '🔵 Contact support after transfer',
+    recharge_request_btn: '⚡ Recharge now',
     network_note_manual: 'Supports TRC-20, BEP-20 networks · credited manually by support after verification', network_note: 'Supports BEP-20 network · auto-detected after transfer',
     // Admin
     admin_title: 'Admin Panel', admin_tab_products: 'Products', admin_tab_articles: 'Content', admin_tab_members: 'Members & Access',
