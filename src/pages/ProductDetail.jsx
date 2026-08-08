@@ -257,10 +257,13 @@ export default function ProductDetail() {
       </div>
 
       <div className="section-block">
-        <div className="section-title"><h2>{isChannel ? t('channel_intro') : t('content_preview')}</h2></div>
+        <div className="section-title">
+          <h2>{isChannel ? t('channel_intro') : t('content_preview')}</h2>
+          {hasOptions && <span className="tag">{product.options[selectedOption]?.name}</span>}
+        </div>
         <div className={`reader ${previewLocked ? 'locked' : ''}`}>
-          <h3 className="display">{product.name}</h3>
-          <div className="body-text rte-render" dangerouslySetInnerHTML={{ __html: linkifyHtml(product.body || '') }} />
+          <h3 className="display">{product.name}{hasOptions ? ` · ${product.options[selectedOption]?.name}` : ''}</h3>
+          <div className="body-text rte-render" dangerouslySetInnerHTML={{ __html: linkifyHtml((hasOptions ? product.options[selectedOption]?.body : product.body) || '') }} />
           {previewLocked && (
             <div className="lock-badge">
               <div className="icon">🔒</div>

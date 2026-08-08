@@ -247,7 +247,7 @@ function ProductForm({ initial, onSave, onCancel }) {
 
   function saveWithImages() {
     const cleanOptions = form.type === 'course'
-      ? form.options.filter((o) => o.name.trim()).map((o) => ({ name: o.name.trim(), price: Number(o.price) || 0 }))
+      ? form.options.filter((o) => o.name.trim()).map((o) => ({ name: o.name.trim(), price: Number(o.price) || 0, body: o.body || '' }))
       : [];
     onSave({ ...form, images: form.images, image: form.images[0] || '', options: cleanOptions });
   }
@@ -289,22 +289,30 @@ function ProductForm({ initial, onSave, onCancel }) {
           <div className="field" style={{ gridColumn: '1/-1' }}>
             <label>{t('field_course_options')}</label>
             {form.options.map((opt, idx) => (
-              <div key={idx} style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'center' }}>
-                <input style={{ flex: 2 }} placeholder={t('option_name_placeholder')} value={opt.name} onChange={(e) => updateOption(idx, 'name', e.target.value)} />
-                <input style={{ flex: 1 }} type="number" placeholder={t('field_price2')} value={opt.price} onChange={(e) => updateOption(idx, 'price', e.target.value)} />
-                <div className="icon-btn" onClick={() => removeOption(idx)}>✕</div>
+              <div key={idx} className="course-option-block">
+                <div style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'center' }}>
+                  <input style={{ flex: 2 }} placeholder={t('option_name_placeholder')} value={opt.name} onChange={(e) => updateOption(idx, 'name', e.target.value)} />
+                  <input style={{ flex: 1 }} type="number" placeholder={t('field_price2')} value={opt.price} onChange={(e) => updateOption(idx, 'price', e.target.value)} />
+                  <div className="icon-btn" onClick={() => removeOption(idx)}>✕</div>
+                </div>
+                <label style={{ fontSize: 11.5, color: 'var(--muted)', marginBottom: 6, display: 'block' }}>{t('option_body_label')}</label>
+                <RichTextEditor value={opt.body || ''} onChange={(html) => updateOption(idx, 'body', html)} />
               </div>
             ))}
             <button type="button" className="btn btn-ghost btn-sm" onClick={addOption}>{t('add_option_btn')}</button>
             <div className="upload-hint" style={{ marginTop: 6 }}>{t('course_options_hint')}</div>
           </div>
         )}
+        {(form.type !== 'course' || form.options.length === 0) && (
         <div className="field"><label>{t('field_sold_label2')}</label><input type="number" value={form.base_sold ?? 0} onChange={set('base_sold')} placeholder="0" /></div>
+        )}
         <div className="field" style={{ gridColumn: '1/-1' }}><label>{t('field_desc_card2')}</label><input value={form.description || ''} onChange={set('description')} /></div>
+        {(form.type !== 'course' || form.options.length === 0) && (
         <div className="field" style={{ gridColumn: '1/-1' }}>
           <label>{t('field_body_detail2')}</label>
           <RichTextEditor value={form.body || ''} onChange={(html) => setForm({ ...form, body: html })} />
         </div>
+        )}
       </div>
       <div className="row-actions">
         <button className="btn btn-amber" onClick={saveWithImages}>{t('save_btn')}</button>
