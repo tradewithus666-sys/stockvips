@@ -846,7 +846,7 @@ function MembersTab() {
   }
   useEffect(() => { reload(); }, []);
 
-  const filtered = search ? members.filter((m) => m.email.includes(search)) : members;
+  const filtered = search ? members.filter((m) => m.email.toLowerCase().includes(search.toLowerCase())) : members;
 
   async function handleGrant(memberId, productId, days) {
     await grantPermission({ memberId, productId, days: days ? Number(days) : null });
