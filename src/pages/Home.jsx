@@ -79,9 +79,9 @@ export default function Home() {
                   <div className="card-body">
                     <h3>{p.name}</h3>
                     <p>{p.description}</p>
-                    {p.sold_label && (
+                    {((p.base_sold ?? 0) + (p.sold ?? 0)) > 0 && (
                       <div className="card-meta">
-                        <span>{t('card_sold')} <b>{p.sold_label}</b></span>
+                        <span>{t('card_sold')} <b>{(p.base_sold ?? 0) + (p.sold ?? 0)}</b></span>
                       </div>
                     )}
                     <div className="card-foot">

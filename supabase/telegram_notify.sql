@@ -10,9 +10,10 @@ declare
   v_product record;
   v_resp extensions.http_response;
   BOT_TOKEN text := '8532446508:AAEZbwCjkFScYyTdGYt5MI0xnUgFJvsA2Hc';
-  CHAT_ID text := '-5461195673';
-
+  CHAT_ID text := '-1004440631437';
+  SITE_URL text := 'https://stockvip.netlify.app';
   v_text text;
+  v_link text;
 begin
   if not public.is_admin() then
     raise exception '无权限';
@@ -22,11 +23,17 @@ begin
   if v_article is null then return jsonb_build_object('ok', false, 'error', 'article_not_found'); end if;
   select * into v_product from public.products where id = v_article.product_id;
 
-  v_text := format('📢 [%s] [%s] 已发布', coalesce(v_product.name, '未知频道'), v_article.title);
+  v_link := SITE_URL || '/article/' || v_article.id;
+  v_text := format(
+    '📢 <a href="%s">[%s] [%s] 已发布</a>',
+    v_link,
+    replace(replace(replace(coalesce(v_product.name, '未知频道'), '&', '&amp;'), '<', '&lt;'), '>', '&gt;'),
+    replace(replace(replace(v_article.title, '&', '&amp;'), '<', '&lt;'), '>', '&gt;')
+  );
 
   select * into v_resp from extensions.http_post(
     format('https://api.telegram.org/bot%s/sendMessage', BOT_TOKEN),
-    jsonb_build_object('chat_id', CHAT_ID, 'text', v_text)::text,
+    jsonb_build_object('chat_id', CHAT_ID, 'text', v_text, 'parse_mode', 'HTML')::text,
     'application/json'
   );
 

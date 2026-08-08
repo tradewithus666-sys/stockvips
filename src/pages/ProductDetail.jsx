@@ -5,7 +5,7 @@ import { fetchProductById, fetchArticlesByProduct, purchaseWithBalance, createPa
 import { useAuth } from '../lib/AuthContext';
 import { useToast } from '../lib/ToastContext';
 import { useLang } from '../lib/LangContext';
-import { formatPublishedAt, linkify } from '../lib/format';
+import { formatPublishedAt } from '../lib/format';
 
 const DUR_MULT = { month: 1, quarter: 2.7, year: 9 };
 
@@ -137,9 +137,9 @@ export default function ProductDetail() {
             ? <img className="detail-cover-img" src={product.image} alt="" />
             : <div className="badge-icon lg">🏅</div>}
           <div className="official">{t('official_badge')}</div>
-          {product.sold_label && (
+          {((product.base_sold ?? 0) + (product.sold ?? 0)) > 0 && (
             <div className="stats">
-              <div><b>{product.sold_label}</b>{t('detail_sold')}</div>
+              <div><b>{(product.base_sold ?? 0) + (product.sold ?? 0)}</b>{t('detail_sold')}</div>
             </div>
           )}
         </div>
@@ -185,13 +185,13 @@ export default function ProductDetail() {
 
                 <div style={{ fontSize: 12, color: 'var(--muted)', margin: '16px 0 10px', fontWeight: 600 }}>{t('choose_payment')}</div>
                 <div className="pay-method-list">
-                  <div className={`pay-method-card ${payMethod === 'balance' ? 'active' : ''}`} onClick={() => setPayMethod('balance')}>
+                  <div className={`pay-method-card ${payMethod === 'balance' ? 'active' : ''} ${(profile?.balance ?? 0) < price ? 'insufficient' : ''}`} onClick={() => setPayMethod('balance')}>
                     <div className="pmc-icon">💰</div>
                     <div className="pmc-body">
                       <div className="pmc-title">{t('pay_balance_title')}</div>
                       <div className="pmc-sub">{t('pay_balance_sub')}</div>
                     </div>
-                    <div className="pmc-balance">${(profile?.balance ?? 0).toFixed(2)} HKD</div>
+                    <div className={`pmc-balance ${(profile?.balance ?? 0) < price ? 'low' : ''}`}>${(profile?.balance ?? 0).toFixed(2)} HKD</div>
                   </div>
                   <div className={`pay-method-card ${payMethod === 'usdt' ? 'active' : ''}`} onClick={() => setPayMethod('usdt')}>
                     <div className="pmc-icon">💠</div>
@@ -217,8 +217,9 @@ export default function ProductDetail() {
                 )}
 
                 {payMethod === 'balance' && (profile?.balance ?? 0) < price && (
-                  <div style={{ color: 'var(--red)', fontSize: 12.5, margin: '10px 0' }}>
-                    {t('balance_insufficient')} <a style={{ color: 'var(--amber)', fontWeight: 700 }} onClick={() => nav('/wallet')}>{t('go_top_up')}</a>
+                  <div className="balance-warning-box">
+                    <span>{t('balance_insufficient')}</span>
+                    <button className="btn btn-amber btn-sm" onClick={() => nav('/wallet')}>{t('go_top_up')}</button>
                   </div>
                 )}
 
@@ -237,7 +238,7 @@ export default function ProductDetail() {
         <div className="section-title"><h2>{isChannel ? t('channel_intro') : t('content_preview')}</h2></div>
         <div className={`reader ${previewLocked ? 'locked' : ''}`}>
           <h3 className="display">{product.name}</h3>
-          <div className="body-text">{linkify(product.body)}</div>
+          <div className="body-text rte-render" dangerouslySetInnerHTML={{ __html: product.body || '' }} />
           {previewLocked && (
             <div className="lock-badge">
               <div className="icon">🔒</div>

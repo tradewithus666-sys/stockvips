@@ -9,8 +9,9 @@ import {
 import { useToast } from '../lib/ToastContext';
 import { useLang } from '../lib/LangContext';
 import { formatPublishedAt } from '../lib/format';
+import RichTextEditor from '../components/RichTextEditor';
 
-const EMPTY_PRODUCT = { name: '', type: 'course', image: '', price: 0, price_quarter: '', price_year: '', description: '', body: '', sold_label: '', status: 'active' };
+const EMPTY_PRODUCT = { name: '', type: 'course', image: '', price: 0, price_quarter: '', price_year: '', description: '', body: '', base_sold: 0, status: 'active' };
 
 export default function Admin() {
   const [tab, setTab] = useState('products');
@@ -22,8 +23,8 @@ export default function Admin() {
       </div>
       <div style={{ display: 'flex', gap: 8, marginBottom: 24, flexWrap: 'wrap' }}>
         {[
-          ['products', t('admin_tab_products')],
           ['articles', t('admin_tab_articles')],
+          ['products', t('admin_tab_products')],
           ['members', t('admin_tab_members')],
         ].map(([key, label]) => (
           <button
@@ -62,6 +63,7 @@ function ProductsTab() {
         price: Number(form.price) || 0,
         price_quarter: form.price_quarter === '' || form.price_quarter == null ? null : Number(form.price_quarter),
         price_year: form.price_year === '' || form.price_year == null ? null : Number(form.price_year),
+        base_sold: Number(form.base_sold) || 0,
       };
       if (id) {
         await updateProduct(id, payload);
@@ -157,7 +159,7 @@ function ProductsTab() {
               <td>{p.name}</td>
               <td>{p.type}</td>
               <td className="mono">${p.price} HKD</td>
-              <td className="mono">{p.sold_label || '—'}</td>
+              <td className="mono">{(p.base_sold ?? 0) + (p.sold ?? 0)}</td>
               <td><span className={`pill ${p.status === 'off' ? 'off' : ''}`}>{p.status === 'off' ? t('status_off') : t('status_active')}</span></td>
               <td className="row-actions">
                 <div className="icon-btn" onClick={() => setEditing(p)}>✎</div>
@@ -176,7 +178,7 @@ function ProductsTab() {
             <div className="product-mcard-top">
               <div>
                 <div style={{ fontWeight: 700, fontSize: 14.5 }}>{p.name}</div>
-                <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>{p.type} · ${p.price} HKD · {t('th_col_sold')} {p.sold_label || '—'}</div>
+                <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>{p.type} · ${p.price} HKD · {t('th_col_sold')} {(p.base_sold ?? 0) + (p.sold ?? 0)}</div>
               </div>
               <span className={`pill ${p.status === 'off' ? 'off' : ''}`}>{p.status === 'off' ? t('status_off') : t('status_active')}</span>
             </div>
@@ -257,16 +259,19 @@ function ProductForm({ initial, onSave, onCancel }) {
           {form.images.length < 5 && <input type="file" accept="image/*" multiple onChange={handleFile} />}
           {uploading && <div style={{ fontSize: 12, color: 'var(--muted)' }}>{t('uploading_label')}</div>}
         </div>
-        <div className="field"><label>{t('field_price2')}</label><input type="number" value={form.price} onChange={set('price')} /></div>
+        <div className="field"><label>{form.type === 'subscription' ? t('field_price_month2') : t('field_price2')}</label><input type="number" value={form.price} onChange={set('price')} /></div>
         {form.type === 'subscription' && (
           <>
             <div className="field"><label>{t('field_price_quarter2')}</label><input type="number" value={form.price_quarter || ''} onChange={set('price_quarter')} /></div>
             <div className="field"><label>{t('field_price_year2')}</label><input type="number" value={form.price_year || ''} onChange={set('price_year')} /></div>
           </>
         )}
-        <div className="field"><label>{t('field_sold_label2')}</label><input value={form.sold_label || ''} onChange={set('sold_label')} placeholder="500+" /></div>
+        <div className="field"><label>{t('field_sold_label2')}</label><input type="number" value={form.base_sold ?? 0} onChange={set('base_sold')} placeholder="0" /></div>
         <div className="field" style={{ gridColumn: '1/-1' }}><label>{t('field_desc_card2')}</label><input value={form.description || ''} onChange={set('description')} /></div>
-        <div className="field" style={{ gridColumn: '1/-1' }}><label>{t('field_body_detail2')}</label><textarea value={form.body || ''} onChange={set('body')} /></div>
+        <div className="field" style={{ gridColumn: '1/-1' }}>
+          <label>{t('field_body_detail2')}</label>
+          <RichTextEditor value={form.body || ''} onChange={(html) => setForm({ ...form, body: html })} />
+        </div>
       </div>
       <div className="row-actions">
         <button className="btn btn-amber" onClick={saveWithImages}>{t('save_btn')}</button>

@@ -275,7 +275,36 @@ button{font-family:inherit;cursor:pointer;border:none;}
 .pmc-title{font-size:13.5px;font-weight:700;}
 .pmc-sub{font-size:11.5px;color:var(--muted);margin-top:2px;}
 .pmc-balance{font-family:'JetBrains Mono';font-size:13px;color:var(--amber);font-weight:600;white-space:nowrap;}
+.pmc-balance.low{color:var(--red);}
+.pay-method-card.insufficient{border-color:rgba(226,87,76,0.35);box-shadow:0 0 0 1px rgba(226,87,76,0.15);}
+.balance-warning-box{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+  background:var(--red-tint);border:1px solid rgba(226,87,76,0.4);border-radius:12px;
+  padding:12px 14px;margin:12px 0;color:var(--red);font-size:12.5px;font-weight:600;
+}
+.rate-hint{font-size:11.5px;color:var(--muted);text-align:center;margin-top:6px;}
 .off-shelf-banner{background:var(--red-tint);color:var(--red);border:1px solid rgba(226,87,76,0.35);padding:16px;border-radius:12px;font-size:13.5px;font-weight:700;text-align:center;}
+
+/* ---------- 富文本编辑器（商品详情内容） ---------- */
+.rte-wrap{border:1.5px solid var(--line);border-radius:var(--radius-sm);overflow:hidden;background:var(--surface-2);}
+.rte-toolbar{display:flex;gap:6px;align-items:center;padding:8px;border-bottom:1px solid var(--line);background:var(--surface-3);flex-wrap:wrap;}
+.rte-toolbar button{
+  min-width:30px;height:30px;padding:0 8px;border-radius:6px;background:var(--surface-2);color:var(--text);
+  font-size:12.5px;border:1px solid var(--line);
+}
+.rte-toolbar button:hover{border-color:var(--amber);color:var(--amber);}
+.rte-toolbar input[type=color]{width:30px;height:30px;padding:2px;border-radius:6px;border:1px solid var(--line);background:var(--surface-2);}
+.rte-img-btn{
+  display:flex;align-items:center;gap:4px;height:30px;padding:0 10px;border-radius:6px;background:var(--surface-2);
+  color:var(--text);font-size:12.5px;border:1px solid var(--line);cursor:pointer;
+}
+.rte-img-btn:hover{border-color:var(--amber);color:var(--amber);}
+.rte-body{min-height:140px;padding:12px 14px;color:var(--text);font-size:13.5px;line-height:1.7;outline:none;}
+.rte-body img{max-width:100%;border-radius:8px;margin:6px 0;}
+.rte-body ul{padding-left:20px;}
+.rte-render img{max-width:100%;border-radius:10px;margin:8px 0;}
+.rte-render ul{padding-left:20px;}
+.rte-render b,.rte-render strong{color:var(--text);}
 
 .wallet-balance-card{
   display:flex;align-items:center;gap:16px;background:linear-gradient(135deg,var(--surface),var(--surface-2));
