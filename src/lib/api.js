@@ -151,6 +151,44 @@ export async function updateHelpContent(body) {
   return data;
 }
 
+/* ---------- Discord 频道同步 ---------- */
+export async function fetchDiscordConfig() {
+  const { data, error } = await supabase.from('discord_sync_config').select('*').eq('id', 1).maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+export async function updateDiscordConfig(payload) {
+  const { data, error } = await supabase.from('discord_sync_config').update(payload).eq('id', 1).select().single();
+  if (error) throw error;
+  return data;
+}
+
+export async function triggerDiscordSync() {
+  const { data, error } = await supabase.rpc('admin_trigger_discord_sync');
+  if (error) throw error;
+  return data;
+}
+
+/* ---------- Telegram 频道同步 ---------- */
+export async function fetchTelegramSyncConfig() {
+  const { data, error } = await supabase.from('telegram_sync_config').select('*').eq('id', 1).maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+export async function updateTelegramSyncConfig(payload) {
+  const { data, error } = await supabase.from('telegram_sync_config').update(payload).eq('id', 1).select().single();
+  if (error) throw error;
+  return data;
+}
+
+export async function triggerTelegramSync() {
+  const { data, error } = await supabase.rpc('admin_trigger_telegram_sync');
+  if (error) throw error;
+  return data;
+}
+
 /* ---------- 会员权限／购买 ---------- */
 export async function fetchMyPermissions(memberId) {
   const { data, error } = await supabase

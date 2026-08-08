@@ -8,6 +8,8 @@ import {
   fetchCategoriesByProduct, createCategory, deleteCategory,
   fetchAllAnnouncements, createAnnouncement, updateAnnouncement, deleteAnnouncement,
   fetchHelpContent, updateHelpContent,
+  fetchDiscordConfig, updateDiscordConfig, triggerDiscordSync,
+  fetchTelegramSyncConfig, updateTelegramSyncConfig, triggerTelegramSync,
 } from '../lib/api';
 import { useToast } from '../lib/ToastContext';
 import { useLang } from '../lib/LangContext';
@@ -31,6 +33,8 @@ export default function Admin() {
           ['members', t('admin_tab_members')],
           ['announcements', t('admin_tab_announcements')],
           ['help', t('admin_tab_help')],
+          ['discord', t('admin_tab_discord')],
+          ['telegramsync', t('admin_tab_telegramsync')],
         ].map(([key, label]) => (
           <button
             key={key}
@@ -46,6 +50,8 @@ export default function Admin() {
       {tab === 'members' && <MembersTab />}
       {tab === 'announcements' && <AnnouncementsTab />}
       {tab === 'help' && <HelpTab />}
+      {tab === 'discord' && <DiscordTab />}
+      {tab === 'telegramsync' && <TelegramSyncTab />}
     </div>
   );
 }
@@ -156,6 +162,222 @@ function HelpTab() {
           <button className="btn btn-amber" disabled={saving} onClick={handleSave}>{saving ? t('processing') : t('save_btn')}</button>
           <button className="btn btn-ghost" disabled={saving} onClick={handleReset}>{t('reset_to_default_btn')}</button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------------- Discord 频道同步 ---------------- */
+function DiscordTab() {
+  const [config, setConfig] = useState(null);
+  const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const showToast = useToast();
+  const { t } = useLang();
+
+  async function reload() {
+    const [cfg, prods] = await Promise.all([fetchDiscordConfig(), fetchProducts()]);
+    setConfig(cfg);
+    setProducts(prods.filter((p) => p.type === 'subscription'));
+    if (cfg?.target_product_id) {
+      const cats = await fetchCategoriesByProduct(cfg.target_product_id);
+      setCategories(cats);
+    }
+    setLoading(false);
+  }
+  useEffect(() => { reload(); }, []);
+
+  async function handleProductChange(productId) {
+    setConfig({ ...config, target_product_id: productId, target_category_id: null });
+    const cats = productId ? await fetchCategoriesByProduct(productId) : [];
+    setCategories(cats);
+  }
+
+  async function handleSave() {
+    setSaving(true);
+    try {
+      await updateDiscordConfig({
+        bot_token: config.bot_token || null,
+        channel_id: config.channel_id || null,
+        target_product_id: config.target_product_id || null,
+        target_category_id: config.target_category_id || null,
+        enabled: !!config.enabled,
+      });
+      showToast(t('toast_discord_saved'));
+    } catch (err) {
+      showToast(err.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleSyncNow() {
+    setSyncing(true);
+    try {
+      const result = await triggerDiscordSync();
+      if (result.status === 'ok') showToast(t('toast_discord_synced', result.synced));
+      else if (result.status === 'not_configured') showToast(t('toast_discord_not_configured'));
+      else showToast(t('toast_discord_sync_failed'));
+      reload();
+    } catch (err) {
+      showToast(err.message);
+    } finally {
+      setSyncing(false);
+    }
+  }
+
+  if (loading) return <div className="loading-screen">{t('loading')}</div>;
+
+  return (
+    <div>
+      <p style={{ color: 'var(--muted)', fontSize: 12.5, marginBottom: 16 }}>{t('discord_hint')}</p>
+      <div className="form-panel">
+        <div className="form-grid">
+          <div className="field" style={{ gridColumn: '1/-1' }}>
+            <label>{t('discord_bot_token')}</label>
+            <input type="password" value={config.bot_token || ''} onChange={(e) => setConfig({ ...config, bot_token: e.target.value })} placeholder="Bot Token" />
+          </div>
+          <div className="field">
+            <label>{t('discord_channel_id')}</label>
+            <input value={config.channel_id || ''} onChange={(e) => setConfig({ ...config, channel_id: e.target.value })} placeholder="123456789012345678" />
+          </div>
+          <div className="field">
+            <label>{t('discord_target_channel')}</label>
+            <select value={config.target_product_id || ''} onChange={(e) => handleProductChange(e.target.value)}>
+              <option value="">{t('category_none')}</option>
+              {products.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+          </div>
+          {config.target_product_id && (
+            <div className="field">
+              <label>{t('discord_target_category')}</label>
+              <select value={config.target_category_id || ''} onChange={(e) => setConfig({ ...config, target_category_id: e.target.value })}>
+                <option value="">{t('category_none')}</option>
+                {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            </div>
+          )}
+        </div>
+        <label className="tg-sync-checkbox">
+          <input type="checkbox" checked={!!config.enabled} onChange={(e) => setConfig({ ...config, enabled: e.target.checked })} />
+          {t('discord_enable_checkbox')}
+        </label>
+        <div className="row-actions">
+          <button className="btn btn-amber" disabled={saving} onClick={handleSave}>{saving ? t('processing') : t('save_btn')}</button>
+          <button className="btn btn-ghost" disabled={syncing} onClick={handleSyncNow}>{syncing ? t('processing') : t('discord_sync_now_btn')}</button>
+        </div>
+        {config.last_message_id && <div className="upload-hint" style={{ marginTop: 10 }}>{t('discord_last_synced')}: {config.last_message_id}</div>}
+      </div>
+    </div>
+  );
+}
+
+/* ---------------- Telegram 频道同步 ---------------- */
+function TelegramSyncTab() {
+  const [config, setConfig] = useState(null);
+  const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const showToast = useToast();
+  const { t } = useLang();
+
+  async function reload() {
+    const [cfg, prods] = await Promise.all([fetchTelegramSyncConfig(), fetchProducts()]);
+    setConfig(cfg);
+    setProducts(prods.filter((p) => p.type === 'subscription'));
+    if (cfg?.target_product_id) {
+      const cats = await fetchCategoriesByProduct(cfg.target_product_id);
+      setCategories(cats);
+    }
+    setLoading(false);
+  }
+  useEffect(() => { reload(); }, []);
+
+  async function handleProductChange(productId) {
+    setConfig({ ...config, target_product_id: productId, target_category_id: null });
+    const cats = productId ? await fetchCategoriesByProduct(productId) : [];
+    setCategories(cats);
+  }
+
+  async function handleSave() {
+    setSaving(true);
+    try {
+      await updateTelegramSyncConfig({
+        bot_token: config.bot_token || null,
+        source_chat_id: config.source_chat_id || null,
+        target_product_id: config.target_product_id || null,
+        target_category_id: config.target_category_id || null,
+        enabled: !!config.enabled,
+      });
+      showToast(t('toast_discord_saved'));
+    } catch (err) {
+      showToast(err.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleSyncNow() {
+    setSyncing(true);
+    try {
+      const result = await triggerTelegramSync();
+      if (result.status === 'ok') showToast(t('toast_discord_synced', result.synced));
+      else if (result.status === 'not_configured') showToast(t('toast_discord_not_configured'));
+      else showToast(t('toast_discord_sync_failed'));
+      reload();
+    } catch (err) {
+      showToast(err.message);
+    } finally {
+      setSyncing(false);
+    }
+  }
+
+  if (loading) return <div className="loading-screen">{t('loading')}</div>;
+
+  return (
+    <div>
+      <p style={{ color: 'var(--muted)', fontSize: 12.5, marginBottom: 16 }}>{t('telegramsync_hint')}</p>
+      <div className="form-panel">
+        <div className="form-grid">
+          <div className="field" style={{ gridColumn: '1/-1' }}>
+            <label>{t('discord_bot_token')} (Telegram)</label>
+            <input type="password" value={config.bot_token || ''} onChange={(e) => setConfig({ ...config, bot_token: e.target.value })} placeholder="123456:ABC-DEF..." />
+          </div>
+          <div className="field">
+            <label>{t('telegramsync_source_chat')}</label>
+            <input value={config.source_chat_id || ''} onChange={(e) => setConfig({ ...config, source_chat_id: e.target.value })} placeholder="-1001234567890" />
+          </div>
+          <div className="field">
+            <label>{t('discord_target_channel')}</label>
+            <select value={config.target_product_id || ''} onChange={(e) => handleProductChange(e.target.value)}>
+              <option value="">{t('category_none')}</option>
+              {products.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+          </div>
+          {config.target_product_id && (
+            <div className="field">
+              <label>{t('discord_target_category')}</label>
+              <select value={config.target_category_id || ''} onChange={(e) => setConfig({ ...config, target_category_id: e.target.value })}>
+                <option value="">{t('category_none')}</option>
+                {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            </div>
+          )}
+        </div>
+        <label className="tg-sync-checkbox">
+          <input type="checkbox" checked={!!config.enabled} onChange={(e) => setConfig({ ...config, enabled: e.target.checked })} />
+          {t('discord_enable_checkbox')}
+        </label>
+        <div className="row-actions">
+          <button className="btn btn-amber" disabled={saving} onClick={handleSave}>{saving ? t('processing') : t('save_btn')}</button>
+          <button className="btn btn-ghost" disabled={syncing} onClick={handleSyncNow}>{syncing ? t('processing') : t('discord_sync_now_btn')}</button>
+        </div>
+        {config.last_update_id && <div className="upload-hint" style={{ marginTop: 10 }}>{t('discord_last_synced')}: {config.last_update_id}</div>}
       </div>
     </div>
   );
