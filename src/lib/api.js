@@ -33,7 +33,6 @@ export async function deleteProduct(id) {
   if (error) throw error;
 }
 
-// 拖曳排序：一次传入 [{id, sort_order}, ...] 批次更新
 export async function reorderProducts(items) {
   const updates = items.map((item, idx) =>
     supabase.from('products').update({ sort_order: idx }).eq('id', item.id)
@@ -98,8 +97,6 @@ export async function fetchMyPurchases(memberId) {
   return data;
 }
 
-// 用余额购买／续费：呼叫 Postgres function 做「扣款 + 开通权限」的原子操作，
-// 避免像原本前端直接改 balance 那样，在并发情况下扣款跟开通对不上。
 export async function purchaseWithBalance({ productId, duration, price }) {
   const { data, error } = await supabase.rpc('purchase_with_balance', {
     p_product_id: productId,
@@ -171,6 +168,12 @@ export async function createRechargeIntent({ amount, address }) {
 
 export async function checkPaymentIntent(intentId) {
   const { data, error } = await supabase.rpc('check_and_complete_usdt_payment', { p_intent_id: intentId });
+  if (error) throw error;
+  return data;
+}
+
+export async function verifyUsdtTx(intentId, txHash) {
+  const { data, error } = await supabase.rpc('verify_usdt_tx', { p_intent_id: intentId, p_tx_hash: txHash });
   if (error) throw error;
   return data;
 }
