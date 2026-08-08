@@ -9,7 +9,7 @@ import {
 } from '../lib/api';
 import { useToast } from '../lib/ToastContext';
 import { useLang } from '../lib/LangContext';
-import { formatPublishedAt } from '../lib/format';
+import { formatPublishedAt, usdtToHkd, USDT_TO_HKD_RATE } from '../lib/format';
 import RichTextEditor from '../components/RichTextEditor';
 
 const EMPTY_PRODUCT = { name: '', type: 'course', image: '', price: 0, price_quarter: '', price_year: '', description: '', body: '', base_sold: 0, status: 'active' };
@@ -279,11 +279,35 @@ function ProductForm({ initial, onSave, onCancel }) {
           {form.images.length < 5 && <input type="file" accept="image/*" multiple onChange={handleFile} />}
           {uploading && <div style={{ fontSize: 12, color: 'var(--muted)' }}>{t('uploading_label')}</div>}
         </div>
-        <div className="field"><label>{form.type === 'subscription' ? t('field_price_month2') : t('field_price2')}</label><input type="number" value={form.price} onChange={set('price')} /></div>
+        <div className="field">
+          <label>{form.type === 'subscription' ? t('field_price_month2') : t('field_price2')}</label>
+          <input type="number" value={form.price} onChange={set('price')} />
+        </div>
+        <div className="field">
+          <label>{t('field_price_hkd_input')}</label>
+          <input type="number" placeholder={t('hkd_input_placeholder')} onChange={(e) => setForm({ ...form, price: e.target.value ? (Number(e.target.value) / USDT_TO_HKD_RATE).toFixed(2) : form.price })} />
+          <div className="upload-hint">{t('hkd_auto_hint')} · {t('hkd_equiv_now')} {usdtToHkd(form.price)} HKD</div>
+        </div>
         {form.type === 'subscription' && (
           <>
-            <div className="field"><label>{t('field_price_quarter2')}</label><input type="number" value={form.price_quarter || ''} onChange={set('price_quarter')} /></div>
-            <div className="field"><label>{t('field_price_year2')}</label><input type="number" value={form.price_year || ''} onChange={set('price_year')} /></div>
+            <div className="field">
+              <label>{t('field_price_quarter2')}</label>
+              <input type="number" value={form.price_quarter || ''} onChange={set('price_quarter')} />
+            </div>
+            <div className="field">
+              <label>{t('field_price_hkd_input')}（{t('dur_quarter')}）</label>
+              <input type="number" placeholder={t('hkd_input_placeholder')} onChange={(e) => setForm({ ...form, price_quarter: e.target.value ? (Number(e.target.value) / USDT_TO_HKD_RATE).toFixed(2) : form.price_quarter })} />
+              <div className="upload-hint">{t('hkd_equiv_now')} {usdtToHkd(form.price_quarter || 0)} HKD</div>
+            </div>
+            <div className="field">
+              <label>{t('field_price_year2')}</label>
+              <input type="number" value={form.price_year || ''} onChange={set('price_year')} />
+            </div>
+            <div className="field">
+              <label>{t('field_price_hkd_input')}（{t('dur_year')}）</label>
+              <input type="number" placeholder={t('hkd_input_placeholder')} onChange={(e) => setForm({ ...form, price_year: e.target.value ? (Number(e.target.value) / USDT_TO_HKD_RATE).toFixed(2) : form.price_year })} />
+              <div className="upload-hint">{t('hkd_equiv_now')} {usdtToHkd(form.price_year || 0)} HKD</div>
+            </div>
           </>
         )}
         {form.type === 'course' && (
@@ -291,11 +315,13 @@ function ProductForm({ initial, onSave, onCancel }) {
             <label>{t('field_course_options')}</label>
             {form.options.map((opt, idx) => (
               <div key={idx} className="course-option-block">
-                <div style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                   <input style={{ flex: 2 }} placeholder={t('option_name_placeholder')} value={opt.name} onChange={(e) => updateOption(idx, 'name', e.target.value)} />
                   <input style={{ flex: 1 }} type="number" placeholder={t('field_price2')} value={opt.price} onChange={(e) => updateOption(idx, 'price', e.target.value)} />
+                  <input style={{ flex: 1 }} type="number" placeholder={t('hkd_input_placeholder')} onChange={(e) => updateOption(idx, 'price', e.target.value ? (Number(e.target.value) / USDT_TO_HKD_RATE).toFixed(2) : opt.price)} />
                   <div className="icon-btn" onClick={() => removeOption(idx)}>✕</div>
                 </div>
+                <div className="upload-hint" style={{ marginTop: -4, marginBottom: 8 }}>{t('hkd_equiv_now')} {usdtToHkd(opt.price || 0)} HKD</div>
                 <label style={{ fontSize: 11.5, color: 'var(--muted)', marginBottom: 6, display: 'block' }}>{t('option_body_label')}</label>
                 <RichTextEditor value={opt.body || ''} onChange={(html) => updateOption(idx, 'body', html)} />
               </div>
