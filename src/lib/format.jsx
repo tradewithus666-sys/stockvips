@@ -25,3 +25,45 @@ export const USDT_TO_HKD_RATE = 7.8;
 export function usdtToHkd(amount) {
   return (Number(amount) * USDT_TO_HKD_RATE).toFixed(0);
 }
+
+// 富文本编辑器存的是 HTML 字串，会员直接在里面打纯文字网址（没有用「插入连结」功能）
+// 时不会自动变成 <a> 标签。这里在渲染前扫过 HTML，把还是纯文字型态的网址转成可点击连结，
+// 用 DOMParser 走过所有文字节点处理，不会误伤本来就是 <a>/<img> 标签属性里的网址。
+const PLAIN_URL_RE = /(https?:\/\/[^\s<]+)/g;
+export function linkifyHtml(html) {
+  if (!html) return html;
+  if (typeof window === 'undefined' || !window.DOMParser) return html;
+  try {
+    const doc = new DOMParser().parseFromString(`<div>${html}</div>`, 'text/html');
+    const root = doc.body.firstChild;
+    const walker = doc.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    const targets = [];
+    let node;
+    while ((node = walker.nextNode())) {
+      if (node.parentElement && node.parentElement.closest('a')) continue; // 已经在连结里面就跳过
+      if (PLAIN_URL_RE.test(node.nodeValue)) targets.push(node);
+      PLAIN_URL_RE.lastIndex = 0;
+    }
+    targets.forEach((textNode) => {
+      const parts = textNode.nodeValue.split(PLAIN_URL_RE);
+      const frag = doc.createDocumentFragment();
+      parts.forEach((part) => {
+        if (/^https?:\/\//i.test(part)) {
+          const a = doc.createElement('a');
+          a.href = part;
+          a.target = '_blank';
+          a.rel = 'noopener noreferrer';
+          a.textContent = part;
+          frag.appendChild(a);
+        } else if (part) {
+          frag.appendChild(doc.createTextNode(part));
+        }
+      });
+      textNode.parentNode.replaceChild(frag, textNode);
+    });
+    return root.innerHTML;
+  } catch (err) {
+    return html; // 万一解析失败，退回原本内容，不要让页面整个坏掉
+  }
+}
+

@@ -23,6 +23,17 @@ export default function Help() {
           <div style={{ color: 'var(--muted)', fontSize: 13.5, lineHeight: 1.7 }}>{t(descKey)}</div>
         </div>
       ))}
+
+      <div className="form-panel">
+        <div style={{ fontWeight: 700, marginBottom: 6 }}>{steps.length + 1}. {t('help_step6_title')}</div>
+        <div style={{ color: 'var(--muted)', fontSize: 13.5, lineHeight: 1.7, marginBottom: 14 }}>{t('help_step6_desc')}</div>
+        <button
+          className="btn btn-amber"
+          onClick={() => window.open(import.meta.env.VITE_TELEGRAM_SUPPORT_URL, '_blank', 'noopener')}
+        >
+          🔵 {t('help_contact_support_btn')}
+        </button>
+      </div>
     </div>
   );
 }

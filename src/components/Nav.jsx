@@ -19,10 +19,12 @@ export default function Nav() {
           <>
             <span className="nav-user" title={profile?.email ?? user.email}>{profile?.email ?? user.email}</span>
             <button className="btn btn-amber" onClick={() => nav('/member')}>{t('nav_member')}</button>
+            <button className="btn btn-ghost" onClick={() => nav('/')}>{t('nav_shop')}</button>
             <button className="btn btn-ghost" onClick={() => nav('/help')}>{t('nav_help')}</button>
           </>
         ) : (
           <>
+            <button className="btn btn-ghost" onClick={() => nav('/')}>{t('nav_shop')}</button>
             <button className="btn btn-ghost" onClick={() => nav('/help')}>{t('nav_help')}</button>
             <button className="btn btn-ghost" onClick={() => nav('/login')}>{t('nav_login')}</button>
           </>

@@ -5,7 +5,7 @@ import { fetchProductById, fetchArticlesByProduct, purchaseWithBalance, createPa
 import { useAuth } from '../lib/AuthContext';
 import { useToast } from '../lib/ToastContext';
 import { useLang } from '../lib/LangContext';
-import { formatPublishedAt, usdtToHkd } from '../lib/format';
+import { formatPublishedAt, usdtToHkd, linkifyHtml } from '../lib/format';
 
 const DUR_MULT = { month: 1, quarter: 2.7, year: 9 };
 
@@ -36,6 +36,7 @@ export default function ProductDetail() {
   const [articles, setArticles] = useState([]);
   const [myPerm, setMyPerm] = useState(null);
   const [duration, setDuration] = useState('month');
+  const [selectedOption, setSelectedOption] = useState(0);
   const [payMethod, setPayMethod] = useState('balance');
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -74,7 +75,8 @@ export default function ProductDetail() {
   const isChannel = product.type === 'subscription';
   const isOff = product.status === 'off';
   const owned = !!myPerm && (!myPerm.expires_at || new Date(myPerm.expires_at) >= new Date(new Date().toDateString()));
-  const price = isCourse ? product.price : getDurationPrice(product, duration);
+  const hasOptions = isCourse && product.options?.length > 0;
+  const price = isCourse ? (hasOptions ? Number(product.options[selectedOption]?.price ?? 0) : product.price) : getDurationPrice(product, duration);
   const previewLocked = !owned && !isChannel;
   const ownedText = isCourse ? t('owned_course_text')
     : product.type === 'shared' ? t('owned_shared_text')
@@ -85,7 +87,12 @@ export default function ProductDetail() {
     if ((profile?.balance ?? 0) < price) { showToast(t('balance_insufficient')); return; }
     setBusy(true);
     try {
-      await purchaseWithBalance({ productId: product.id, duration: isCourse ? 'lifetime' : duration, price });
+      await purchaseWithBalance({
+        productId: product.id,
+        duration: isCourse ? 'lifetime' : duration,
+        price,
+        variant: hasOptions ? product.options[selectedOption]?.name : null,
+      });
       showToast(t('toast_buy_success', product.name));
       await refreshProfile();
       const { data } = await supabase
@@ -150,6 +157,7 @@ export default function ProductDetail() {
 
           {owned && <div className="owned-banner">{ownedText}</div>}
 
+          {(!owned || isChannel) && (
           <div className="purchase-box">
             {isOff ? (
               <div className="off-shelf-banner">{t('off_shelf_notice')}</div>
@@ -157,6 +165,19 @@ export default function ProductDetail() {
               <>
                 {isCourse ? (
                   <>
+                    {hasOptions && (
+                      <div className="dur-grid" style={{ marginBottom: 14 }}>
+                        {product.options.map((opt, idx) => (
+                          <div
+                            key={idx}
+                            className={`dur-opt wide ${selectedOption === idx ? 'active' : ''}`}
+                            onClick={() => setSelectedOption(idx)}
+                          >
+                            {opt.name} <small>${opt.price} USDT <span className="fx-hint">≈{usdtToHkd(opt.price)}</span></small>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                     <div className="price-row"><b>${price}.00 USDT</b><span className="fx-hint">≈ {usdtToHkd(price)} HKD</span><span>{t('per_lifetime')}</span></div>
                     <div className="lifetime-badge">{t('lifetime_badge')}</div>
                   </>
@@ -231,6 +252,7 @@ export default function ProductDetail() {
               </>
             )}
           </div>
+          )}
         </div>
       </div>
 
@@ -238,7 +260,7 @@ export default function ProductDetail() {
         <div className="section-title"><h2>{isChannel ? t('channel_intro') : t('content_preview')}</h2></div>
         <div className={`reader ${previewLocked ? 'locked' : ''}`}>
           <h3 className="display">{product.name}</h3>
-          <div className="body-text rte-render" dangerouslySetInnerHTML={{ __html: product.body || '' }} />
+          <div className="body-text rte-render" dangerouslySetInnerHTML={{ __html: linkifyHtml(product.body || '') }} />
           {previewLocked && (
             <div className="lock-badge">
               <div className="icon">🔒</div>

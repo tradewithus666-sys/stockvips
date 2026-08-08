@@ -199,11 +199,27 @@ function ProductsTab() {
 }
 
 function ProductForm({ initial, onSave, onCancel }) {
-  const [form, setForm] = useState({ ...initial, images: initial.images && initial.images.length ? initial.images : (initial.image ? [initial.image] : []) });
+  const [form, setForm] = useState({
+    ...initial,
+    images: initial.images && initial.images.length ? initial.images : (initial.image ? [initial.image] : []),
+    options: initial.options && initial.options.length ? initial.options : [],
+  });
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
   const [uploading, setUploading] = useState(false);
   const showToast = useToast();
   const { t } = useLang();
+
+  function addOption() {
+    setForm({ ...form, options: [...form.options, { name: '', price: 0 }] });
+  }
+  function updateOption(idx, field, value) {
+    const next = [...form.options];
+    next[idx] = { ...next[idx], [field]: value };
+    setForm({ ...form, options: next });
+  }
+  function removeOption(idx) {
+    setForm({ ...form, options: form.options.filter((_, i) => i !== idx) });
+  }
 
   async function handleFile(e) {
     const files = Array.from(e.target.files || []);
@@ -230,7 +246,10 @@ function ProductForm({ initial, onSave, onCancel }) {
   }
 
   function saveWithImages() {
-    onSave({ ...form, images: form.images, image: form.images[0] || '' });
+    const cleanOptions = form.type === 'course'
+      ? form.options.filter((o) => o.name.trim()).map((o) => ({ name: o.name.trim(), price: Number(o.price) || 0 }))
+      : [];
+    onSave({ ...form, images: form.images, image: form.images[0] || '', options: cleanOptions });
   }
 
   return (
@@ -265,6 +284,20 @@ function ProductForm({ initial, onSave, onCancel }) {
             <div className="field"><label>{t('field_price_quarter2')}</label><input type="number" value={form.price_quarter || ''} onChange={set('price_quarter')} /></div>
             <div className="field"><label>{t('field_price_year2')}</label><input type="number" value={form.price_year || ''} onChange={set('price_year')} /></div>
           </>
+        )}
+        {form.type === 'course' && (
+          <div className="field" style={{ gridColumn: '1/-1' }}>
+            <label>{t('field_course_options')}</label>
+            {form.options.map((opt, idx) => (
+              <div key={idx} style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'center' }}>
+                <input style={{ flex: 2 }} placeholder={t('option_name_placeholder')} value={opt.name} onChange={(e) => updateOption(idx, 'name', e.target.value)} />
+                <input style={{ flex: 1 }} type="number" placeholder={t('field_price2')} value={opt.price} onChange={(e) => updateOption(idx, 'price', e.target.value)} />
+                <div className="icon-btn" onClick={() => removeOption(idx)}>✕</div>
+              </div>
+            ))}
+            <button type="button" className="btn btn-ghost btn-sm" onClick={addOption}>{t('add_option_btn')}</button>
+            <div className="upload-hint" style={{ marginTop: 6 }}>{t('course_options_hint')}</div>
+          </div>
         )}
         <div className="field"><label>{t('field_sold_label2')}</label><input type="number" value={form.base_sold ?? 0} onChange={set('base_sold')} placeholder="0" /></div>
         <div className="field" style={{ gridColumn: '1/-1' }}><label>{t('field_desc_card2')}</label><input value={form.description || ''} onChange={set('description')} /></div>
