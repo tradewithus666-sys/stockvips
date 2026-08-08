@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { fetchProducts, fetchMyPermissions } from '../lib/api';
 import { useAuth } from '../lib/AuthContext';
 import { useLang } from '../lib/LangContext';
+import { usdtToHkd } from '../lib/format';
 
 function isExpired(dateStr) {
   if (!dateStr) return false;
@@ -86,7 +87,7 @@ export default function Home() {
                     )}
                     <div className="card-foot">
                       <div className="price">
-                        ${p.price} HKD
+                        ${p.price} USDT <span className="fx-hint">≈ {usdtToHkd(p.price)} HKD</span>
                         <span>{p.type === 'course' ? t('price_suffix_course') : t('price_suffix_month')}</span>
                       </div>
                       {p.status === 'off'

@@ -4,7 +4,7 @@ import { fetchMyPermissions, fetchMyPurchases, fetchArticlesByProduct, purchaseW
 import { useAuth } from '../lib/AuthContext';
 import { useToast } from '../lib/ToastContext';
 import { useLang } from '../lib/LangContext';
-import { formatPublishedAt } from '../lib/format';
+import { formatPublishedAt, usdtToHkd } from '../lib/format';
 import { supabase } from '../supabaseClient';
 
 function isExpired(dateStr) {
@@ -134,12 +134,12 @@ export default function MemberCenter() {
             <div className="dur-grid">
               {['month', 'quarter', 'year'].map((d) => (
                 <div key={d} className={`dur-opt ${d === 'year' ? 'wide' : ''} ${renewDuration === d ? 'active' : ''}`} onClick={() => setRenewDuration(d)}>
-                  {DUR_LABEL[d]} <small>${getDurationPrice(pm.products, d)} HKD</small>
+                  {DUR_LABEL[d]} <small>${getDurationPrice(pm.products, d)} USDT <span className="fx-hint">≈{usdtToHkd(getDurationPrice(pm.products, d))}</span></small>
                 </div>
               ))}
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
-              <div className="price" style={{ fontSize: 20 }}>${getDurationPrice(pm.products, renewDuration)}.00 HKD</div>
+              <div className="price" style={{ fontSize: 20 }}>${getDurationPrice(pm.products, renewDuration)}.00 USDT <span className="fx-hint">≈{usdtToHkd(getDurationPrice(pm.products, renewDuration))} HKD</span></div>
               <button className="btn btn-amber btn-sm" disabled={busy} onClick={() => confirmRenew(pm)}>{t('confirm_renew_btn')}</button>
             </div>
           </div>
@@ -169,7 +169,7 @@ export default function MemberCenter() {
         <div className="who"><b>{profile?.email}</b><span>{t('joined_label')}{profile?.created_at?.slice(0, 10)}</span></div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           <button className="btn btn-amber btn-sm" onClick={() => nav('/wallet')}>
-            💰 {t('my_wallet')} <span style={{ opacity: 0.8, fontWeight: 600 }}>· {(profile?.balance ?? 0).toFixed(2)} HKD</span>
+            💰 {t('my_wallet')} <span style={{ opacity: 0.8, fontWeight: 600 }}>· {(profile?.balance ?? 0).toFixed(2)} USDT</span>
           </button>
           <div className="session-box">
             <span className="dotlive"></span>

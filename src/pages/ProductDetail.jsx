@@ -5,7 +5,7 @@ import { fetchProductById, fetchArticlesByProduct, purchaseWithBalance, createPa
 import { useAuth } from '../lib/AuthContext';
 import { useToast } from '../lib/ToastContext';
 import { useLang } from '../lib/LangContext';
-import { formatPublishedAt } from '../lib/format';
+import { formatPublishedAt, usdtToHkd } from '../lib/format';
 
 const DUR_MULT = { month: 1, quarter: 2.7, year: 9 };
 
@@ -157,13 +157,13 @@ export default function ProductDetail() {
               <>
                 {isCourse ? (
                   <>
-                    <div className="price-row"><b>${price}.00 HKD</b><span>{t('per_lifetime')}</span></div>
+                    <div className="price-row"><b>${price}.00 USDT</b><span className="fx-hint">≈ {usdtToHkd(price)} HKD</span><span>{t('per_lifetime')}</span></div>
                     <div className="lifetime-badge">{t('lifetime_badge')}</div>
                   </>
                 ) : (
                   <>
                     <div className="price-row">
-                      <b>${price}.00 HKD</b>
+                      <b>${price}.00 USDT</b> <span className="fx-hint">≈ {usdtToHkd(price)} HKD</span>
                       <span>／{DUR_LABEL[duration]}</span>
                     </div>
                     <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 12, fontWeight: 600 }}>
@@ -176,7 +176,7 @@ export default function ProductDetail() {
                           className={`dur-opt ${d === 'year' ? 'wide' : ''} ${duration === d ? 'active' : ''}`}
                           onClick={() => setDuration(d)}
                         >
-                          {DUR_LABEL[d]} <small>${getDurationPrice(product, d)} HKD</small>
+                          {DUR_LABEL[d]} <small>${getDurationPrice(product, d)} USDT <span className="fx-hint">≈{usdtToHkd(getDurationPrice(product, d))}</span></small>
                         </div>
                       ))}
                     </div>
@@ -191,7 +191,7 @@ export default function ProductDetail() {
                       <div className="pmc-title">{t('pay_balance_title')}</div>
                       <div className="pmc-sub">{t('pay_balance_sub')}</div>
                     </div>
-                    <div className={`pmc-balance ${(profile?.balance ?? 0) < price ? 'low' : ''}`}>${(profile?.balance ?? 0).toFixed(2)} HKD</div>
+                    <div className={`pmc-balance ${(profile?.balance ?? 0) < price ? 'low' : ''}`}>${(profile?.balance ?? 0).toFixed(2)} USDT</div>
                   </div>
                   <div className={`pay-method-card ${payMethod === 'usdt' ? 'active' : ''}`} onClick={() => setPayMethod('usdt')}>
                     <div className="pmc-icon">💠</div>

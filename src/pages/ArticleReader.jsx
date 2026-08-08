@@ -65,6 +65,7 @@ export default function ArticleReader() {
             <button className="btn btn-amber" onClick={() => nav('/')}>{t('go_purchase_unlock')}</button>
           </div>
         )}
+        <div className="disclaimer-text">{t('channel_disclaimer')}</div>
       </div>
     </div>
   );

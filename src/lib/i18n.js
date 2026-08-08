@@ -7,6 +7,12 @@ export const DEFAULT_LANG = 'zh-cn';
 
 export const DICT = {
   'zh-tw': {
+    channel_disclaimer: `【免責聲明】
+1. 本頻道純屬技術分析及基本面分析教學，僅使用圖表或數據作案例。
+2. 所有圖表、例子均為過往已發生的走勢，不代表未來走勢。
+3. 本頻道純屬分享個人的交易日誌，並分享給有興趣的讀者作純粹的教學用途。
+4. 不構成任何買賣建議、目標價、投資意見。
+5. 學員須自行判斷，盈虧自負。本人不是證監會持牌人，如有關證券買賣意見請自行向證監會持牌人士咨詢。`,
     // Nav
     nav_member: '會員中心', nav_logout: '退出', nav_login: '登錄 / 註冊', nav_help: '操作教學', help_title: '操作教學',
     help_step1_title: '註冊與登入', help_step1_desc: '點擊右上角「登錄/註冊」，輸入信箱與密碼即可註冊，也可以使用 Google 帳號一鍵登入。',
@@ -146,6 +152,12 @@ export const DICT = {
     toast_copy_blocked: '內容禁止複製，如需轉發請聯繫客服獲取授權',
   },
   'zh-cn': {
+    channel_disclaimer: `【免责声明】
+1. 本频道纯属技术分析及基本面分析教学，仅使用图表或数据作案例。
+2. 所有图表、例子均为过往已发生的走势，不代表未来走势。
+3. 本频道纯属分享个人的交易日志，并分享给有兴趣的读者作纯粹的教学用途。
+4. 不构成任何买卖建议、目标价、投资意见。
+5. 学员须自行判断，盈亏自负。本人不是证监会持牌人，如有关证券买卖意见请自行向证监会持牌人士咨询。`,
     nav_member: '会员中心', nav_logout: '退出', nav_login: '登录 / 注册', nav_help: '操作教程', help_title: '操作教程',
     help_step1_title: '注册与登录', help_step1_desc: '点击右上角「登录/注册」，输入邮箱与密码即可注册，也可以使用 Google 账号一键登录。',
     help_step2_title: '浏览与购买', help_step2_desc: '首页依「课程／订阅项目／共享账号」分类展示，点击卡片查看详情，选择时长与付款方式后即可购买。',
@@ -278,6 +290,12 @@ export const DICT = {
     toast_copy_blocked: '内容禁止复制，如需转发请联系客服获取授权',
   },
   en: {
+    channel_disclaimer: `[Disclaimer]
+1. This channel is for technical and fundamental analysis education only, using charts or data purely as examples.
+2. All charts and examples reflect past price action and do not represent future performance.
+3. This channel shares a personal trading journal for educational purposes only.
+4. Nothing here constitutes trading advice, price targets, or investment recommendations.
+5. Members must exercise independent judgment; all gains and losses are your own responsibility. The author is not an SFC-licensed person — for securities trading advice, please consult a licensed professional.`,
     nav_member: 'Member Center', nav_logout: 'Log out', nav_login: 'Log in / Sign up', nav_help: 'Help', help_title: 'How to use StockVIP',
     help_step1_title: 'Sign up & log in', help_step1_desc: 'Click "Log in / Sign up" top right, register with email + password, or sign in instantly with Google.',
     help_step2_title: 'Browse & purchase', help_step2_desc: 'The homepage groups items by Course / Subscription / Shared Account. Open a card, pick a duration and payment method, then purchase.',
