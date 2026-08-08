@@ -19,3 +19,9 @@ export function linkify(text) {
   );
 }
 
+// USDT 兑 HKD 的固定汇率提示（USDT 约等于 1 美元，联系汇率下约 7.8 港币），
+// 只是给会员付款当下的参考，不是即时汇率，如需更精确可以之后接汇率 API。
+export const USDT_TO_HKD_RATE = 7.8;
+export function usdtToHkd(amount) {
+  return (Number(amount) * USDT_TO_HKD_RATE).toFixed(0);
+}
