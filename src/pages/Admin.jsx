@@ -1086,7 +1086,7 @@ function ArticleForm({ products, categories = [], initial, onDone, onCancel, fix
         try { await notifyTelegramArticle(saved.id); } catch (err) { showToast(t('toast_telegram_notify_failed', err.message)); }
       }
       if (emailNotify) {
-        const preview = cleanBlocks.find((b) => b.type === 'text')?.value || title;
+        const preview = cleanBlocks.filter((b) => b.type === 'text').slice(0, 2).map((b) => b.value).join('\n') || title;
         try { await notifyArticleByEmail(productId, saved.id, preview); } catch (err) { showToast(t('toast_email_notify_failed', err.message)); }
       }
       onDone();
