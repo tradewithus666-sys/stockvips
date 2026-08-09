@@ -3,7 +3,7 @@ import { supabase } from '../supabaseClient';
 import { uploadImage } from '../lib/storage';
 import {
   fetchProducts, createProduct, updateProduct, deleteProduct, reorderProducts,
-  fetchAllMembers, grantPermission, revokePermission, adjustMemberBalance,
+  fetchAllMembers, grantPermission, revokePermission, adjustMemberBalance, notifyPermissionGranted,
   createArticle, updateArticle, deleteArticle, notifyTelegramArticle, notifyArticleByEmail,
   fetchCategoriesByProduct, createCategory, deleteCategory,
   fetchAllAnnouncements, createAnnouncement, updateAnnouncement, deleteAnnouncement,
@@ -1223,9 +1223,14 @@ function MembersTab() {
   const filtered = search ? members.filter((m) => m.email.toLowerCase().includes(search.toLowerCase())) : members;
 
   async function handleGrant(memberId, productId, days, exactDate) {
-    await grantPermission({ memberId, productId, days: days ? Number(days) : null, exactDate: exactDate || null });
+    const granted = await grantPermission({ memberId, productId, days: days ? Number(days) : null, exactDate: exactDate || null });
     setGrantFor(null);
     showToast(t('toast_permission_granted'));
+    try {
+      await notifyPermissionGranted(memberId, productId, granted?.expires_at ?? null);
+    } catch (err) {
+      showToast(t('toast_grant_email_failed', err.message));
+    }
     reload();
   }
 

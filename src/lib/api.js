@@ -243,6 +243,17 @@ export async function grantPermission({ memberId, productId, days, exactDate }) 
   return data;
 }
 
+// 后台手动开通权限后，寄信通知该会员（告诉他开通了哪个频道、时长多久）
+export async function notifyPermissionGranted(memberId, productId, expiresAt) {
+  const { data, error } = await supabase.rpc('notify_permission_granted', {
+    p_member_id: memberId,
+    p_product_id: productId,
+    p_expires_at: expiresAt,
+  });
+  if (error) throw error;
+  return data;
+}
+
 export async function revokePermission({ memberId, productId }) {
   const { error } = await supabase
     .from('permissions')
