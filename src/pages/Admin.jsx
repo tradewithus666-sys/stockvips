@@ -3,7 +3,7 @@ import { supabase } from '../supabaseClient';
 import { uploadImage } from '../lib/storage';
 import {
   fetchProducts, createProduct, updateProduct, deleteProduct, reorderProducts,
-  fetchAllMembers, grantPermission, revokePermission, adjustMemberBalance, notifyPermissionGranted,
+  fetchAllMembers, grantPermission, revokePermission, adjustMemberBalance, notifyPermissionGranted, notifyProductContentUpdated,
   createArticle, updateArticle, deleteArticle, notifyTelegramArticle, notifyArticleByEmail,
   fetchCategoriesByProduct, createCategory, deleteCategory,
   fetchAllAnnouncements, createAnnouncement, updateAnnouncement, deleteAnnouncement,
@@ -397,7 +397,7 @@ function ProductsTab() {
 
   async function handleSave(form) {
     try {
-      const { id, ...rest } = form;
+      const { id, _notifyOnSave, ...rest } = form;
       const payload = {
         ...rest,
         price: Number(form.price) || 0,
@@ -407,6 +407,9 @@ function ProductsTab() {
       };
       if (id) {
         await updateProduct(id, payload);
+        if (_notifyOnSave) {
+          try { await notifyProductContentUpdated(id); } catch (err) { showToast(t('toast_content_notify_failed', err.message)); }
+        }
       } else {
         await createProduct({ ...payload, sort_order: products.length });
       }
@@ -568,6 +571,7 @@ function ProductForm({ initial, onSave, onCancel }) {
   });
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
   const [uploading, setUploading] = useState(false);
+  const [notifyOnSave, setNotifyOnSave] = useState(false); // 只有编辑既有商品时才有意义，预设不勾避免小改动就骚扰会员
   const showToast = useToast();
   const { t } = useLang();
 
@@ -611,7 +615,7 @@ function ProductForm({ initial, onSave, onCancel }) {
     const cleanOptions = form.type === 'course'
       ? form.options.filter((o) => o.name.trim()).map((o) => ({ name: o.name.trim(), price: Number(o.price) || 0, body: o.body || '' }))
       : [];
-    onSave({ ...form, images: form.images, image: form.images[0] || '', options: cleanOptions });
+    onSave({ ...form, images: form.images, image: form.images[0] || '', options: cleanOptions, _notifyOnSave: notifyOnSave });
   }
 
   return (
@@ -702,6 +706,12 @@ function ProductForm({ initial, onSave, onCancel }) {
         </div>
         )}
       </div>
+      {form.id && (
+        <label className="tg-sync-checkbox">
+          <input type="checkbox" checked={notifyOnSave} onChange={(e) => setNotifyOnSave(e.target.checked)} />
+          {t('notify_on_content_update_checkbox')}
+        </label>
+      )}
       <div className="row-actions">
         <button className="btn btn-amber" onClick={saveWithImages}>{t('save_btn')}</button>
         <button className="btn btn-ghost" onClick={onCancel}>{t('cancel_btn')}</button>

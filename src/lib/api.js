@@ -254,6 +254,13 @@ export async function notifyPermissionGranted(memberId, productId, expiresAt) {
   return data;
 }
 
+// 管理员编辑商品内容（例如共享帐号的详情）后，寄信通知目前持有有效权限的所有会员
+export async function notifyProductContentUpdated(productId) {
+  const { data, error } = await supabase.rpc('notify_product_content_updated', { p_product_id: productId });
+  if (error) throw error;
+  return data;
+}
+
 export async function revokePermission({ memberId, productId }) {
   const { error } = await supabase
     .from('permissions')
