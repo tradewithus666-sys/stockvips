@@ -4,7 +4,7 @@ import { uploadImage } from '../lib/storage';
 import {
   fetchProducts, createProduct, updateProduct, deleteProduct, reorderProducts,
   fetchAllMembers, grantPermission, revokePermission, adjustMemberBalance,
-  createArticle, updateArticle, deleteArticle, notifyTelegramArticle,
+  createArticle, updateArticle, deleteArticle, notifyTelegramArticle, notifyArticleByEmail,
   fetchCategoriesByProduct, createCategory, deleteCategory,
   fetchAllAnnouncements, createAnnouncement, updateAnnouncement, deleteAnnouncement,
   fetchHelpContent, updateHelpContent,
@@ -909,6 +909,7 @@ function ArticleForm({ products, categories = [], initial, onDone, onCancel, fix
   const [dragIdx, setDragIdx] = useState(null);
   const [pasting, setPasting] = useState(false);
   const [syncTelegram, setSyncTelegram] = useState(!initial); // 新增文章预设打勾，编辑既有文章预设不勾（避免改错字就重复发通知）
+  const [emailNotify, setEmailNotify] = useState(!initial); // 同上，新文章预设打勾，编辑预设不勾
   const showToast = useToast();
   const { t } = useLang();
 
@@ -1084,6 +1085,10 @@ function ArticleForm({ products, categories = [], initial, onDone, onCancel, fix
       if (syncTelegram) {
         try { await notifyTelegramArticle(saved.id); } catch (err) { showToast(t('toast_telegram_notify_failed', err.message)); }
       }
+      if (emailNotify) {
+        const preview = cleanBlocks.find((b) => b.type === 'text')?.value || title;
+        try { await notifyArticleByEmail(productId, saved.id, preview); } catch (err) { showToast(t('toast_email_notify_failed', err.message)); }
+      }
       onDone();
     } catch (err) {
       showToast(err.message);
@@ -1177,6 +1182,11 @@ function ArticleForm({ products, categories = [], initial, onDone, onCancel, fix
       <label className="tg-sync-checkbox">
         <input type="checkbox" checked={syncTelegram} onChange={(e) => setSyncTelegram(e.target.checked)} />
         {t('sync_telegram_checkbox')}
+      </label>
+
+      <label className="tg-sync-checkbox">
+        <input type="checkbox" checked={emailNotify} onChange={(e) => setEmailNotify(e.target.checked)} />
+        {t('email_notify_checkbox')}
       </label>
 
       <div className="row-actions">

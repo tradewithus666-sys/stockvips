@@ -300,6 +300,17 @@ export async function fetchPaymentIntent(intentId) {
   return data;
 }
 
+/* ---------- 文章更新 Email 通知（寄给已开启通知的订阅会员） ---------- */
+export async function notifyArticleByEmail(productId, articleId, preview) {
+  const { data, error } = await supabase.rpc('notify_subscribers_by_email', {
+    p_product_id: productId,
+    p_article_id: articleId,
+    p_preview: preview ?? '',
+  });
+  if (error) throw error;
+  return data;
+}
+
 export async function toggleEmailNotify({ memberId, productId, enabled }) {
   const { error } = await supabase
     .from('permissions')

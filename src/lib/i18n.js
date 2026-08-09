@@ -7,11 +7,10 @@ export const DEFAULT_LANG = 'zh-cn';
 
 export const DICT = {
   'zh-tw': {
-email_notify_label: '開啟更新通知',
     channel_disclaimer: `【免責聲明】
 1. 本頻道純屬技術分析及基本面分析教學，僅使用圖表或數據作案例。
 2. 所有圖表、例子均為過往已發生的走勢，不代表未來走勢。
-3. 本頻道純屬分享個人的交易日誌，分享給有興趣的讀者作純粹的教學。
+3. 本頻道純屬分享個人的交易日誌，並分享給有興趣的讀者作純粹的教學用途。
 4. 不構成任何買賣建議、目標價、投資意見。
 5. 學員須自行判斷，盈虧自負。本人不是證監會持牌人，如有關證券買賣意見請自行向證監會持牌人士咨詢。`,
     // Nav
@@ -138,6 +137,8 @@ email_notify_label: '開啟更新通知',
     img_row_upload_hint: '上傳後會自動填入本區塊的圖片',
     field_body_text_placeholder: '輸入這一段的文字內容…',
     publish_and_notify_btn2: '發布並推送郵件', save_changes_btn2: '保存修改', sync_telegram_checkbox: '同步發送至 Telegram', toast_telegram_notify_failed: (msg) => `Telegram 通知發送失敗：${msg}`,
+    email_notify_checkbox: '同步發送 Email 通知已訂閱會員', toast_email_notify_failed: (msg) => `Email 通知發送失敗：${msg}`,
+    email_notify_label: '開啟更新通知',
     toast_paste_extracted: (n) => `已從貼上內容拆出 ${n} 張圖片，文字已依原順序加入`,
     toast_paste_empty: '未偵測到可用的文字或圖片',
     toast_fill_title_and_product: '請填寫標題並選擇所屬商品',
@@ -154,11 +155,10 @@ email_notify_label: '開啟更新通知',
     toast_copy_blocked: '內容禁止複製，如需轉發請聯繫客服獲取授權',
   },
   'zh-cn': {
-email_notify_label: '开启更新通知',
     channel_disclaimer: `【免责声明】
 1. 本频道纯属技术分析及基本面分析教学，仅使用图表或数据作案例。
 2. 所有图表、例子均为过往已发生的走势，不代表未来走势。
-3. 本频道纯属分享个人的交易日志，分享给有兴趣的读者作纯粹的教学。
+3. 本频道纯属分享个人的交易日志，并分享给有兴趣的读者作纯粹的教学用途。
 4. 不构成任何买卖建议、目标价、投资意见。
 5. 学员须自行判断，盈亏自负。本人不是证监会持牌人，如有关证券买卖意见请自行向证监会持牌人士咨询。`,
     nav_member: '会员中心', nav_logout: '登出', nav_login: '登录 / 注册', nav_help: '操作教程', nav_shop: '商店', help_title: '操作教程',
@@ -278,6 +278,8 @@ email_notify_label: '开启更新通知',
     img_row_upload_hint: '上传后会自动填入本区块的图片',
     field_body_text_placeholder: '输入这一段的文字内容…',
     publish_and_notify_btn2: '发布并推送邮件', save_changes_btn2: '保存修改', sync_telegram_checkbox: '同步发送至 Telegram', toast_telegram_notify_failed: (msg) => `Telegram 通知发送失败：${msg}`,
+    email_notify_checkbox: '同步发送 Email 通知已订阅会员', toast_email_notify_failed: (msg) => `Email 通知发送失败：${msg}`,
+    email_notify_label: '开启更新通知',
     toast_paste_extracted: (n) => `已从贴上内容拆出 ${n} 张图片，文字已依原顺序加入`,
     toast_paste_empty: '未侦测到可用的文字或图片',
     toast_fill_title_and_product: '请填写标题并选择所属商品',
@@ -294,7 +296,6 @@ email_notify_label: '开启更新通知',
     toast_copy_blocked: '内容禁止复制，如需转发请联系客服获取授权',
   },
   en: {
-email_notify_label: 'Notify me of updates',
     channel_disclaimer: `[Disclaimer]
 1. This channel is for technical and fundamental analysis education only, using charts or data purely as examples.
 2. All charts and examples reflect past price action and do not represent future performance.
@@ -418,6 +419,8 @@ email_notify_label: 'Notify me of updates',
     img_row_upload_hint: 'Uploaded image fills this block automatically',
     field_body_text_placeholder: 'Enter this paragraph\u2019s text…',
     publish_and_notify_btn2: 'Publish & notify', save_changes_btn2: 'Save changes', sync_telegram_checkbox: 'Sync to Telegram', toast_telegram_notify_failed: (msg) => `Telegram notification failed: ${msg}`,
+    email_notify_checkbox: 'Also email subscribed members', toast_email_notify_failed: (msg) => `Email notification failed: ${msg}`,
+    email_notify_label: 'Notify me of updates',
     toast_paste_extracted: (n) => `Extracted ${n} image(s) from the pasted content, in original order`,
     toast_paste_empty: 'No usable text or images were detected',
     toast_fill_title_and_product: 'Please enter a title and select a product',
