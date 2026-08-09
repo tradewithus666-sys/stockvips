@@ -9,7 +9,7 @@ declare
   v_article record;
   v_product record;
   v_resp extensions.http_response;
-  BOT_TOKEN text := '8532446508:AAEZbwCjkFScYyTdGYt5MI0xnUgFJvsA2Hc';
+  BOT_TOKEN text := '8532446508:AAG6BO_MUmVOG6lm1E6U1wG9Bc6D_42RXWQ';
   CHAT_ID text := '-1003198568376';
   SITE_URL text := 'https://stockvip.netlify.app';
   v_text text;

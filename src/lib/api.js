@@ -299,3 +299,12 @@ export async function fetchPaymentIntent(intentId) {
   if (error) throw error;
   return data;
 }
+
+export async function toggleEmailNotify({ memberId, productId, enabled }) {
+  const { error } = await supabase
+    .from('permissions')
+    .update({ notify_email: enabled })
+    .eq('member_id', memberId)
+    .eq('product_id', productId);
+  if (error) throw error;
+}
