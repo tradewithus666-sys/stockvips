@@ -543,6 +543,7 @@ tr:hover td{background:var(--surface-2);}
 .channel-card-body{flex:1;min-width:0;}
 .channel-card-title{font-weight:700;font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .channel-card-count{font-size:12px;color:var(--muted);margin-top:2px;}
+.channel-card-subs{font-size:12px;color:var(--muted);font-weight:600;white-space:nowrap;margin-right:8px;flex-shrink:0;}
 .channel-card-arrow{color:var(--muted);font-size:18px;flex-shrink:0;}
 .channel-detail-head{display:flex;align-items:center;gap:16px;margin-bottom:20px;}
 .channel-detail-img{width:64px;height:64px;border-radius:14px;object-fit:cover;flex-shrink:0;display:flex;align-items:center;justify-content:center;}

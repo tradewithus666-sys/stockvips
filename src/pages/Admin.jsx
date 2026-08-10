@@ -724,6 +724,7 @@ function ProductForm({ initial, onSave, onCancel }) {
 function ArticlesTab() {
   const [products, setProducts] = useState([]);
   const [articles, setArticles] = useState([]);
+  const [subscriberCounts, setSubscriberCounts] = useState({}); // { product_id: 有效订阅人数 }
   const [loading, setLoading] = useState(true);
   const [selectedChannelId, setSelectedChannelId] = useState(null); // null = 目录页
   const { t } = useLang();
@@ -733,8 +734,25 @@ function ArticlesTab() {
       fetchProducts(),
       supabase.from('articles').select('*, products(name)').order('published_at', { ascending: false }).order('created_at', { ascending: false }),
     ]);
-    setProducts(prods.filter((p) => p.type === 'subscription'));
+    const subs = prods.filter((p) => p.type === 'subscription');
+    setProducts(subs);
     setArticles(arts || []);
+
+    // 查每个频道目前「有效权限」（未过期）的会员数，右边显示用
+    if (subs.length) {
+      const { data: perms } = await supabase
+        .from('permissions')
+        .select('product_id, expires_at')
+        .in('product_id', subs.map((p) => p.id));
+      const today = new Date().toISOString().slice(0, 10);
+      const counts = {};
+      (perms || []).forEach((pm) => {
+        if (pm.expires_at && pm.expires_at < today) return; // 已过期不算
+        counts[pm.product_id] = (counts[pm.product_id] || 0) + 1;
+      });
+      setSubscriberCounts(counts);
+    }
+
     setLoading(false);
   }
   useEffect(() => { reload(); }, []);
@@ -775,6 +793,7 @@ function ArticlesTab() {
                 <div className="channel-card-title">{p.name}</div>
                 <div className="channel-card-count">{t('count_articles', count)}</div>
               </div>
+              <div className="channel-card-subs" title="已訂閱人數（未過期）">👥 {subscriberCounts[p.id] || 0}</div>
               <div className="channel-card-arrow">→</div>
             </div>
           );
@@ -1232,15 +1251,25 @@ function MembersTab() {
 
   const filtered = search ? members.filter((m) => m.email.toLowerCase().includes(search.toLowerCase())) : members;
 
-  async function handleGrant(memberId, productId, days, exactDate) {
-    const granted = await grantPermission({ memberId, productId, days: days ? Number(days) : null, exactDate: exactDate || null });
-    setGrantFor(null);
-    showToast(t('toast_permission_granted'));
-    try {
-      await notifyPermissionGranted(memberId, productId, granted?.expires_at ?? null);
-    } catch (err) {
-      showToast(t('toast_grant_email_failed', err.message));
+  async function handleGrant(memberId, productIds, days, exactDate) {
+    // 【本次修改】productIds 现在是阵列，逐一开通每个选中的商品，各自寄一封通知信
+    const ids = Array.isArray(productIds) ? productIds : [productIds];
+    let successCount = 0;
+    for (const pid of ids) {
+      try {
+        const granted = await grantPermission({ memberId, productId: pid, days: days ? Number(days) : null, exactDate: exactDate || null });
+        successCount++;
+        try {
+          await notifyPermissionGranted(memberId, pid, granted?.expires_at ?? null);
+        } catch (err) {
+          showToast(t('toast_grant_email_failed', err.message));
+        }
+      } catch (err) {
+        showToast(err.message);
+      }
     }
+    setGrantFor(null);
+    if (successCount > 0) showToast(t('toast_permission_granted'));
     reload();
   }
 
@@ -1303,7 +1332,7 @@ function MembersTab() {
               </div>
             )) : <span style={{ color: 'var(--muted)', fontSize: 12 }}>—</span>}
           </div>
-          {grantFor === m.id && <GrantForm products={products} onGrant={(pid, days, exactDate) => handleGrant(m.id, pid, days, exactDate)} />}
+          {grantFor === m.id && <GrantForm products={products} onGrant={(pids, days, exactDate) => handleGrant(m.id, pids, days, exactDate)} />}
           {balanceFor === m.id && (
             <div style={{ marginTop: 14, display: 'flex', gap: 10, alignItems: 'center' }}>
               <input type="number" style={{ maxWidth: 160 }} value={balanceAmount} onChange={(e) => setBalanceAmount(e.target.value)} placeholder="100 / -50" />
@@ -1330,36 +1359,50 @@ function MembersTab() {
 }
 
 function GrantForm({ products, onGrant }) {
-  const [productId, setProductId] = useState(products[0]?.id || '');
+  const [productIds, setProductIds] = useState([]); // 【本次修改】改成阵列，支援一次选多个商品
   const [days, setDays] = useState('');
   const [exactDate, setExactDate] = useState('');
   const { t } = useLang();
 
+  function toggleProduct(id) {
+    setProductIds((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
+  }
+
   function parseExactDate(str) {
-    // 接受 20271020 这种 YYYYMMDD 格式，转成 2027-10-20
-    const m = /^(\d{4})(\d{2})(\d{2})$/.exec(str.trim());
+    // 接受 261220 这种 YYMMDD 格式（6 位数），转成 2026-12-20
+    const m = /^(\d{2})(\d{2})(\d{2})$/.exec(str.trim());
     if (!m) return null;
-    return `${m[1]}-${m[2]}-${m[3]}`;
+    return `20${m[1]}-${m[2]}-${m[3]}`;
   }
 
   function handleSubmit() {
+    if (!productIds.length) { alert(t('please_select_at_least_one_product')); return; }
     if (exactDate.trim()) {
       const parsed = parseExactDate(exactDate);
       if (!parsed) { alert(t('exact_date_format_error')); return; }
-      onGrant(productId, null, parsed);
+      onGrant(productIds, null, parsed);
     } else {
-      onGrant(productId, days, null);
+      onGrant(productIds, days, null);
     }
   }
 
   return (
     <div style={{ marginTop: 14 }}>
       <div className="form-grid">
-        <div className="field">
+        <div className="field" style={{ gridColumn: '1/-1' }}>
           <label>{t('field_grant_product2')}</label>
-          <select value={productId} onChange={(e) => setProductId(e.target.value)}>
-            {products.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-          </select>
+          <div className="chip-list">
+            {products.map((p) => (
+              <div
+                key={p.id}
+                className={`chip ${productIds.includes(p.id) ? 'valid' : ''}`}
+                style={{ cursor: 'pointer' }}
+                onClick={() => toggleProduct(p.id)}
+              >
+                {productIds.includes(p.id) ? '✓ ' : ''}{p.name}
+              </div>
+            ))}
+          </div>
         </div>
         <div className="field">
           <label>{t('field_grant_days2')}</label>
@@ -1372,7 +1415,7 @@ function GrantForm({ products, onGrant }) {
         </div>
         <div className="field" style={{ gridColumn: '1/-1' }}>
           <label>{t('field_exact_date')}</label>
-          <input value={exactDate} onChange={(e) => { setExactDate(e.target.value); setDays(''); }} placeholder="20271020" maxLength={8} />
+          <input value={exactDate} onChange={(e) => { setExactDate(e.target.value); setDays(''); }} placeholder="261220" maxLength={6} />
           <div className="upload-hint">{t('exact_date_hint')}</div>
         </div>
       </div>
