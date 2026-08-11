@@ -15,9 +15,9 @@ import { useEffect, useRef, useState } from 'react';
  * （用于外泄的是文字内容而非截图时）来追溯来源。
  */
 export default function Watermark({ text, active }) {
-  const [count, setCount] = useState(0);
+  const [grid, setGrid] = useState({ count: 0, cols: 2 });
   const timerRef = useRef(null);
-  const SITE_URL = 'Tradewithus888.com'; // 每隔一个格子穿插网址，混在会员信箱浮水印之间
+  const SITE_URL = 'Tradewithus888.com'; // 跟会员信箱一起穿插展示
 
   useEffect(() => {
     function recompute() {
@@ -26,7 +26,7 @@ export default function Watermark({ text, active }) {
       const cellW = 190, cellH = 130;
       const cols = Math.max(2, Math.ceil(w / cellW));
       const rows = Math.max(2, Math.ceil(h / cellH));
-      setCount(Math.min(cols * rows, 600));
+      setGrid({ count: Math.min(cols * rows, 600), cols });
     }
     recompute();
     window.addEventListener('resize', recompute);
@@ -38,9 +38,11 @@ export default function Watermark({ text, active }) {
   return (
     <div className="global-watermark" aria-hidden="true">
       <div className="global-watermark-inner">
-        {Array.from({ length: count }).map((_, i) => (
-          <span key={i}>{i % 2 === 0 ? text : SITE_URL}</span>
-        ))}
+        {Array.from({ length: grid.count }).map((_, i) => {
+          const row = Math.floor(i / grid.cols);
+          // 整排交替：单数排显示信箱，双数排显示网址，形成上下相间的效果
+          return <span key={i}>{row % 2 === 0 ? text : SITE_URL}</span>;
+        })}
       </div>
     </div>
   );
