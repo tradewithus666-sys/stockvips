@@ -393,15 +393,26 @@ button{font-family:inherit;cursor:pointer;border:none;}
 .inline-video-wrap{position:relative;width:100%;padding-top:56.25%;border-radius:14px;overflow:hidden;background:#000;}
 .inline-video-wrap .inline-video{position:absolute;top:0;left:0;width:100%;height:100%;border:0;}
 .locked .inline-video-wrap{filter:blur(10px);pointer-events:none;}
-/* 影片内部自己的浮水印：跟着 wrapper 一起进全萤幕，不会像页面外层那个浮水印一样在全萤幕时消失 */
-.inline-video-watermark{
-  position:absolute;bottom:14px;right:16px;color:rgba(255,255,255,0.28);font-size:12px;font-weight:700;
-  pointer-events:none;letter-spacing:0.4px;text-shadow:0 1px 3px rgba(0,0,0,0.5);z-index:2;
+/* 假全萤幕：不靠浏览器原生 Fullscreen API（iOS Safari 对一般 div 不支援），
+   改用 position:fixed 把容器撑满整个画面，所有装置都能用，浮水印是容器内的子元素，
+   自然会一起被放大铺满。 */
+.inline-video-wrap.is-fullscreen{
+  position:fixed;inset:0;z-index:9999;width:100vw;height:100vh;padding-top:0;border-radius:0;
 }
+/* Google Drive 内嵌预览播放器右上角有自己的「在新分页开启」跳出按钮，没办法直接移除跨网域
+   iframe 里面的元素，疊一层透明遮挡层盖住那个位置，点了没反应但畫面上還是看得到。 */
+.inline-video-block-corner{position:absolute;top:0;right:0;width:64px;height:56px;z-index:5;background:transparent;}
+/* 影片内部自己的浮水印：跟着容器一起放大／进假全萤幕，不会像页面外层那个浮水印一样在全萤幕时消失 */
+.inline-video-watermark{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  color:rgba(255,255,255,0.22);font-size:14px;font-weight:700;white-space:nowrap;
+  pointer-events:none;letter-spacing:0.4px;text-shadow:0 1px 4px rgba(0,0,0,0.6);z-index:2;
+}
+.inline-video-wrap.is-fullscreen .inline-video-watermark{font-size:20px;}
 .inline-video-fs-btn{
-  position:absolute;top:10px;right:10px;width:34px;height:34px;border-radius:8px;
+  position:absolute;bottom:14px;right:14px;width:34px;height:34px;border-radius:8px;
   background:rgba(0,0,0,0.55);color:#fff;font-size:16px;display:flex;align-items:center;justify-content:center;
-  z-index:3;border:1px solid rgba(255,255,255,0.2);
+  z-index:6;border:1px solid rgba(255,255,255,0.2);
 }
 .inline-video-fs-btn:hover{background:rgba(0,0,0,0.75);}
 .locked .pdf-block-corner{display:none;}
