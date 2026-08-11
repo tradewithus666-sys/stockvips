@@ -337,3 +337,44 @@ export async function toggleEmailNotify({ memberId, productId, enabled }) {
     .eq('product_id', productId);
   if (error) throw error;
 }
+
+/* ---------- 文章已读标记 ---------- */
+export async function fetchReadArticleIds(memberId) {
+  const { data, error } = await supabase.from('article_reads').select('article_id').eq('member_id', memberId);
+  if (error) throw error;
+  return data.map((r) => r.article_id);
+}
+
+export async function markArticleRead(memberId, articleId) {
+  const { error } = await supabase
+    .from('article_reads')
+    .upsert({ member_id: memberId, article_id: articleId, read_at: new Date().toISOString() }, { onConflict: 'member_id,article_id' });
+  if (error) throw error;
+}
+
+/* ---------- 文章收藏 ---------- */
+export async function fetchFavoriteArticleIds(memberId) {
+  const { data, error } = await supabase.from('article_favorites').select('article_id').eq('member_id', memberId);
+  if (error) throw error;
+  return data.map((r) => r.article_id);
+}
+
+export async function toggleFavoriteArticle({ memberId, articleId, isFavorite }) {
+  if (isFavorite) {
+    const { error } = await supabase.from('article_favorites').insert({ member_id: memberId, article_id: articleId });
+    if (error) throw error;
+  } else {
+    const { error } = await supabase.from('article_favorites').delete().eq('member_id', memberId).eq('article_id', articleId);
+    if (error) throw error;
+  }
+}
+
+export async function fetchMyFavoriteArticles(memberId) {
+  const { data, error } = await supabase
+    .from('article_favorites')
+    .select('created_at, articles(*, products(name))')
+    .eq('member_id', memberId)
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return data.map((r) => r.articles).filter(Boolean);
+}

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { fetchMyPermissions, fetchMyPurchases, fetchArticlesByProduct, purchaseWithBalance, fetchActiveAnnouncements, toggleEmailNotify } from '../lib/api';
+import { fetchMyPermissions, fetchMyPurchases, fetchArticlesByProduct, purchaseWithBalance, fetchActiveAnnouncements, toggleEmailNotify, fetchMyFavoriteArticles } from '../lib/api';
 import { useAuth } from '../lib/AuthContext';
 import { useToast } from '../lib/ToastContext';
 import { useLang } from '../lib/LangContext';
@@ -52,6 +52,7 @@ export default function MemberCenter() {
   const [purchases, setPurchases] = useState([]);
   const [recentArticles, setRecentArticles] = useState({}); // productId -> articles[]
   const [announcements, setAnnouncements] = useState([]);
+  const [favorites, setFavorites] = useState([]);
   const [loading, setLoading] = useState(true);
   const [renewingId, setRenewingId] = useState(null);
   const [renewDuration, setRenewDuration] = useState('month');
@@ -60,6 +61,7 @@ export default function MemberCenter() {
   useEffect(() => {
     if (!user) { nav('/login'); return; }
     fetchActiveAnnouncements().then(setAnnouncements).catch(() => {});
+    fetchMyFavoriteArticles(user.id).then(setFavorites).catch(() => {});
     Promise.all([fetchMyPermissions(user.id), fetchMyPurchases(user.id)])
       .then(async ([p, pu]) => {
         setPerms(p);
@@ -238,6 +240,20 @@ export default function MemberCenter() {
 
       <div className="section-title" style={{ marginTop: 30 }}><h2 style={{ fontSize: 18 }}>🔑 {t('my_shared_accounts')}</h2></div>
       {sharedPerms.length ? sharedPerms.map(permRow) : <div className="empty">{t('no_shared_yet')}</div>}
+
+      <div className="section-title" style={{ marginTop: 30 }}>
+        <h2 style={{ fontSize: 18 }}>❤️ {t('my_favorites')}</h2><span className="tag">{t('count_articles', favorites.length)}</span>
+      </div>
+      {favorites.length ? favorites.map((a) => (
+        <div key={a.id} className="article-item" onClick={() => nav(`/article/${a.id}`)}>
+          <div>
+            <div className="ti">
+              <span className="art-date">{formatPublishedDateOnly(a)}</span>
+              {a.products?.name ? `[${a.products.name}] ` : ''}{a.title}
+            </div>
+          </div>
+        </div>
+      )) : <div className="empty">{t('no_favorites_yet')}</div>}
     </div>
   );
 }

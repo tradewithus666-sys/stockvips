@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
-import { fetchArticlesByProduct, fetchCategoriesByProduct } from '../lib/api';
+import { fetchArticlesByProduct, fetchCategoriesByProduct, fetchReadArticleIds, fetchFavoriteArticleIds, toggleFavoriteArticle } from '../lib/api';
 import { useAuth } from '../lib/AuthContext';
 import { useToast } from '../lib/ToastContext';
 import { useLang } from '../lib/LangContext';
@@ -17,6 +17,9 @@ export default function ProductFeed() {
   const [articles, setArticles] = useState([]);
   const [categories, setCategories] = useState([]);
   const [activeCat, setActiveCat] = useState('all');
+  const [search, setSearch] = useState('');
+  const [readIds, setReadIds] = useState(new Set());
+  const [favoriteIds, setFavoriteIds] = useState(new Set());
   const [owned, setOwned] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -34,6 +37,8 @@ export default function ProductFeed() {
           .from('permissions').select('*').eq('member_id', user.id).eq('product_id', id).maybeSingle();
         const valid = perm && (!perm.expires_at || new Date(perm.expires_at) >= new Date(new Date().toDateString()));
         if (mounted) setOwned(!!valid);
+        const [reads, favs] = await Promise.all([fetchReadArticleIds(user.id), fetchFavoriteArticleIds(user.id)]);
+        if (mounted) { setReadIds(new Set(reads)); setFavoriteIds(new Set(favs)); }
       }
       setLoading(false);
     }
@@ -41,10 +46,27 @@ export default function ProductFeed() {
     return () => { mounted = false; };
   }, [id, user]);
 
+  async function handleToggleFavorite(e, articleId) {
+    e.stopPropagation();
+    if (!user) { showToast(t('toast_login_first')); nav('/login'); return; }
+    const isFav = favoriteIds.has(articleId);
+    const next = new Set(favoriteIds);
+    isFav ? next.delete(articleId) : next.add(articleId);
+    setFavoriteIds(next); // 先乐观更新画面，避免使用者点了没反应的感觉
+    try {
+      await toggleFavoriteArticle({ memberId: user.id, articleId, isFavorite: !isFav });
+    } catch (err) {
+      setFavoriteIds(favoriteIds); // 失败就退回原本状态
+      showToast(err.message);
+    }
+  }
+
   if (loading) return <div className="loading-screen">{t('loading')}</div>;
   if (!product) return <div className="empty">{t('product_not_found')}</div>;
 
-  const filteredArticles = activeCat === 'all' ? articles : articles.filter((a) => a.category_id === activeCat);
+  const filteredArticles = articles
+    .filter((a) => activeCat === 'all' || a.category_id === activeCat)
+    .filter((a) => !search.trim() || a.title?.toLowerCase().includes(search.trim().toLowerCase()));
 
   return (
     <div>
@@ -58,6 +80,12 @@ export default function ProductFeed() {
           <p>{product.description}</p>
           {!owned && <button className="btn btn-amber" style={{ marginTop: 20 }} onClick={() => nav(`/product/${product.id}`)}>{t('subscribe_unlock')}</button>}
         </div>
+      </div>
+
+      <div className="site-search-bar">
+        <span className="site-search-icon">🔍</span>
+        <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('search_articles_placeholder')} />
+        {search && <button className="site-search-clear" onClick={() => setSearch('')}>✕</button>}
       </div>
 
       {categories.length > 0 && (
@@ -78,12 +106,18 @@ export default function ProductFeed() {
             className="article-item"
             onClick={() => owned ? nav(`/article/${a.id}`) : showToast(t('locked_read_prompt'))}
           >
-            <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              {user && !readIds.has(a.id) && <span className="unread-dot" title={t('unread_label')} />}
               <div className="ti">
                 <span className="art-date">{formatPublishedAt(a)}</span>
                 {owned ? '' : '🔒 '}{a.title}
               </div>
             </div>
+            {user && (
+              <button className={`favorite-btn ${favoriteIds.has(a.id) ? 'active' : ''}`} onClick={(e) => handleToggleFavorite(e, a.id)} title={t('favorite_toggle_label')}>
+                {favoriteIds.has(a.id) ? '❤️' : '🤍'}
+              </button>
+            )}
           </div>
         ))}
         {!owned && filteredArticles.length > 0 && (

@@ -14,6 +14,7 @@ export default function Home() {
   const [products, setProducts] = useState([]);
   const [unlockedIds, setUnlockedIds] = useState(new Set());
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
   const nav = useNavigate();
   const { user } = useAuth();
   const { t } = useLang();
@@ -59,8 +60,22 @@ export default function Home() {
         </div>
       </div>
 
+      <div className="site-search-bar">
+        <span className="site-search-icon">🔍</span>
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder={t('search_products_placeholder')}
+        />
+        {search && <button className="site-search-clear" onClick={() => setSearch('')}>✕</button>}
+      </div>
+
       {['course', 'subscription', 'shared'].map((type) => {
-        const list = products.filter((p) => p.type === type);
+        const list = products.filter((p) => p.type === type && (
+          !search.trim() ||
+          p.name?.toLowerCase().includes(search.trim().toLowerCase()) ||
+          p.description?.toLowerCase().includes(search.trim().toLowerCase())
+        ));
         const meta = TYPE_META[type];
         return (
           <div className="cat-section" key={type}>

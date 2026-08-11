@@ -4,6 +4,7 @@ import { supabase } from '../supabaseClient';
 import { useAuth } from '../lib/AuthContext';
 import { useLang } from '../lib/LangContext';
 import { formatPublishedAt, linkify, toEmbedUrl } from '../lib/format';
+import { markArticleRead, fetchFavoriteArticleIds, toggleFavoriteArticle } from '../lib/api';
 import WatermarkedVideo from '../components/WatermarkedVideo';
 
 export default function ArticleReader() {
@@ -14,6 +15,7 @@ export default function ArticleReader() {
   const [article, setArticle] = useState(null);
   const [productId, setProductId] = useState(null);
   const [owned, setOwned] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -29,6 +31,11 @@ export default function ArticleReader() {
           .from('permissions').select('*').eq('member_id', user.id).eq('product_id', a.product_id).maybeSingle();
         const valid = perm && (!perm.expires_at || new Date(perm.expires_at) >= new Date(new Date().toDateString()));
         if (mounted) setOwned(!!valid);
+        if (valid) {
+          markArticleRead(user.id, a.id).catch(() => {}); // 已读标记失败不影响阅读体验，静默处理
+        }
+        const favIds = await fetchFavoriteArticleIds(user.id);
+        if (mounted) setIsFavorite(favIds.includes(a.id));
       }
       setLoading(false);
     }
@@ -36,12 +43,30 @@ export default function ArticleReader() {
     return () => { mounted = false; };
   }, [id, user]);
 
+  async function handleToggleFavorite() {
+    if (!user) { nav('/login'); return; }
+    const next = !isFavorite;
+    setIsFavorite(next);
+    try {
+      await toggleFavoriteArticle({ memberId: user.id, articleId: id, isFavorite: next });
+    } catch (err) {
+      setIsFavorite(!next);
+    }
+  }
+
   if (loading) return <div className="loading-screen">{t('loading')}</div>;
   if (!article) return <div className="empty">{t('product_not_found_short')}</div>;
 
   return (
     <div>
-      <button className="btn btn-ghost" style={{ margin: '18px 0' }} onClick={() => nav(`/feed/${productId}`)}>{t('detail_back')}</button>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '18px 0' }}>
+        <button className="btn btn-ghost" onClick={() => nav(`/feed/${productId}`)}>{t('detail_back')}</button>
+        {user && (
+          <button className={`favorite-btn ${isFavorite ? 'active' : ''}`} onClick={handleToggleFavorite} title={t('favorite_toggle_label')}>
+            {isFavorite ? '❤️' : '🤍'} {t('favorite_toggle_label')}
+          </button>
+        )}
+      </div>
       <div className={`reader ${owned ? '' : 'locked'}`}>
         <h3 className="display">{article.title}</h3>
         <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 14 }}>{t('published_on')} {formatPublishedAt(article)}</div>
