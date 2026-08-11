@@ -151,6 +151,9 @@ export default function MemberCenter() {
             {isSub && !expired && (
               <button className="btn btn-outline-amber btn-sm" onClick={() => nav(`/feed/${pm.product_id}`)}>{t('view_all_articles_btn')}</button>
             )}
+            {!isSub && !expired && (
+              <button className="btn btn-outline-amber btn-sm" onClick={() => nav(`/product/${pm.product_id}`)}>{t('view_content_btn')}</button>
+            )}
           </div>
         </div>
 
