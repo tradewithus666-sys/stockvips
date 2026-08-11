@@ -7,6 +7,14 @@ export function formatPublishedAt(article) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+// 只要日期，不要时间（会员中心用）
+export function formatPublishedDateOnly(article) {
+  if (!article?.created_at) return article?.published_at || '';
+  const d = new Date(article.created_at);
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
 // 把纯文字里的网址自动转成可点击连结，新分页打开
 const URL_SPLIT_RE = /(https?:\/\/[^\s]+)/g;
 export function linkify(text) {

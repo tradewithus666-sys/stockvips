@@ -43,7 +43,7 @@ export default function Watermark({ text, active }) {
           const row = Math.floor(i / grid.cols);
           // 3x3 一组的方形排列：正中间放网址，四周（含四角）都放会员信箱
           const isCenter = col % 3 === 1 && row % 3 === 1;
-          return <span key={i}>{isCenter ? SITE_URL : text}</span>;
+          return <span key={i} className={isCenter ? 'wm-url' : ''}>{isCenter ? SITE_URL : text}</span>;
         })}
       </div>
     </div>

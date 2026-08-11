@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { fetchMyPermissions, fetchMyPurchases, fetchArticlesByProduct, purchaseWithBalance, fetchActiveAnnouncements, toggleEmailNotify } from '../lib/api';
+import { fetchMyPermissions, fetchMyPurchases, fetchArticlesByProduct, purchaseWithBalance, fetchActiveAnnouncements } from '../lib/api';
 import { useAuth } from '../lib/AuthContext';
 import { useToast } from '../lib/ToastContext';
 import { useLang } from '../lib/LangContext';
-import { formatPublishedAt, usdtToHkd } from '../lib/format';
+import { formatPublishedDateOnly, usdtToHkd } from '../lib/format';
 import { supabase } from '../supabaseClient';
 
 function isExpired(dateStr) {
@@ -118,24 +118,6 @@ export default function MemberCenter() {
             <div>
               <div style={{ fontWeight: 700, fontSize: 14.5 }}>{pm.products?.name}</div>
               <div className={`expiry-big ${expired ? 'bad' : ''}`}>{t('expires_label')}{pm.expires_at ?? t('permanent_valid')}</div>
-              {isSub && (
-                <label className="notify-toggle">
-                  <input
-                    type="checkbox"
-                    checked={pm.notify_email !== false}
-                    onChange={async (e) => {
-                      const checked = e.target.checked;
-                      try {
-                        await toggleEmailNotify({ memberId: user.id, productId: pm.product_id, enabled: checked });
-                        setPerms((prev) => prev.map((x) => x.id === pm.id ? { ...x, notify_email: checked } : x));
-                      } catch (err) {
-                        showToast(err.message);
-                      }
-                    }}
-                  />
-                  {t('email_notify_label')}
-                </label>
-              )}
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
@@ -145,9 +127,6 @@ export default function MemberCenter() {
             )}
             {isSub && !expired && (
               <button className="btn btn-outline-amber btn-sm" onClick={() => nav(`/feed/${pm.product_id}`)}>{t('view_all_articles_btn')}</button>
-            )}
-            {!isSub && (
-              <button className="btn btn-outline-amber btn-sm" onClick={() => nav(`/product/${pm.product_id}`)}>{t('view_detail_btn')}</button>
             )}
           </div>
         </div>
@@ -172,7 +151,7 @@ export default function MemberCenter() {
           <div style={{ marginTop: 12, borderTop: '1px solid var(--line)', paddingTop: 10 }}>
             {articles.length ? articles.map((a) => (
               <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0', cursor: 'pointer' }} onClick={() => nav(`/article/${a.id}`)}>
-                <span className="art-date">{formatPublishedAt(a)}</span>
+                <span className="art-date">{formatPublishedDateOnly(a)}</span>
                 <span style={{ fontSize: 13, color: 'var(--text)' }}>{a.title}</span>
               </div>
             )) : <div style={{ fontSize: 12, color: 'var(--muted)', padding: '4px 0' }}>{t('no_articles_for_product')}</div>}
