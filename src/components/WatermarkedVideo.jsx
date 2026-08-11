@@ -26,6 +26,9 @@ export default function WatermarkedVideo({ embedUrl, watermarkText, index }) {
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
       />
       {isDrive && <div className="inline-video-block-corner" title="" />}
+      {/* 挡住播放器自己内建的全萤幕按钮（YouTube/Vimeo 通常在控制列右下角），
+          逼使用者用我们自己左下角那颗按钮，浮水印才不会在原生全萤幕时消失 */}
+      <div className="inline-video-block-fs" title="" />
       <div className="inline-video-watermark" aria-hidden="true">{watermarkText}</div>
       <button type="button" className="inline-video-fs-btn" onClick={() => setIsFullscreen((v) => !v)} title="全萤幕">
         {isFullscreen ? '⤡' : '⤢'}
