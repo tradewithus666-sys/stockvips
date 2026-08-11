@@ -24,6 +24,7 @@ export const DICT = {
     // Home
     hero_title: 'VIP 會員訂閱平台課程',
     hero_desc: '一站式 VIP 訂閱，隨選隨看，靈活暢享。',
+    join_telegram_group_btn: '加入 Telegram 交流群組',
     hero_cta: '查看我的會員權限',
     type_course: '課程', type_subscription: '訂閱項目', type_shared: '共享帳號',
     count_items: (n) => `共 ${n} 項`,
@@ -173,6 +174,7 @@ export const DICT = {
     help_step6_title: '联系客服', help_step6_desc: '有任何付款、续费或使用上的问题，都可以直接点击下方按钮联系我们的 Telegram 客服。', help_contact_support_btn: '联系 Telegram 客服',
     hero_title: 'VIP 会员订阅平台课程',
     hero_desc: '一站式 VIP 订阅，随选随看，灵活畅享。',
+    join_telegram_group_btn: '加入 Telegram 交流群组',
     hero_cta: '查看我的会员权限',
     type_course: '课程', type_subscription: '订阅项目', type_shared: '共享账号',
     count_items: (n) => `共 ${n} 项`,
@@ -317,6 +319,7 @@ export const DICT = {
     help_step6_title: 'Contact support', help_step6_desc: 'For any payment, renewal, or usage questions, tap the button below to reach our Telegram support.', help_contact_support_btn: 'Contact Telegram support',
     hero_title: 'VIP Membership Subscription Courses',
     hero_desc: 'One-stop VIP subscriptions — watch anytime, enjoy freely.',
+    join_telegram_group_btn: 'Join our Telegram group',
     hero_cta: 'View my membership',
     type_course: 'Courses', type_subscription: 'Subscriptions', type_shared: 'Shared accounts',
     count_items: (n) => `${n} items`,

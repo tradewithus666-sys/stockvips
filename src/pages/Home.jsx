@@ -47,6 +47,15 @@ export default function Home() {
           <div className="hero-eyebrow">◆ {t('official_badge')}</div>
           <h1 className="display">{t('hero_title')}</h1>
           <p>{t('hero_desc')}</p>
+          <a
+            href="https://t.me/stocktrading666"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn btn-amber"
+            style={{ marginTop: 18, display: 'inline-flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}
+          >
+            💬 {t('join_telegram_group_btn')}
+          </a>
         </div>
       </div>
 
