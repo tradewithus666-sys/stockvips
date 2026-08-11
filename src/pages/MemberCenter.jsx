@@ -78,7 +78,10 @@ export default function MemberCenter() {
 
   const subPerms = perms.filter((p) => p.products?.type === 'subscription');
   const sharedPerms = perms.filter((p) => p.products?.type === 'shared');
-  const coursePurchases = purchases.filter((p) => p.products?.type === 'course');
+  // 【本次修复】改用 permissions（权限）当资料来源，不是只看 purchases（购买记录）表。
+  // 原因：管理员在后台直接授予权限的课程，只会写进 permissions，不会有对应的 purchases 记录，
+  // 之前只看 purchases 会导致这种「管理员开通、非自行购买」的课程完全不会显示出来。
+  const coursePerms = perms.filter((p) => p.products?.type === 'course');
   const device = user ? parseDevice(navigator.userAgent) : '—';
   const loginAt = user?.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleString() : '';
 
@@ -211,18 +214,23 @@ export default function MemberCenter() {
       {subPerms.length ? subPerms.map(permRow) : <div className="empty">{t('no_permission_yet')}</div>}
 
       <div className="section-title" style={{ marginTop: 30 }}>
-        <h2 style={{ fontSize: 18 }}>{t('purchased_courses')}</h2><span className="tag">{t('count_orders', coursePurchases.length)}</span>
+        <h2 style={{ fontSize: 18 }}>{t('purchased_courses')}</h2><span className="tag">{t('count_orders', coursePerms.length)}</span>
       </div>
-      {coursePurchases.length ? coursePurchases.map((pu) => {
-        const meta = pu.products ? TYPE_META[pu.products.type] : null;
+      {coursePerms.length ? coursePerms.map((pm) => {
+        const meta = pm.products ? TYPE_META[pm.products.type] : null;
+        // 有实际购买记录的话（真的用余额/USDT买的），显示价格跟购买日期；
+        // 没有的话（管理员直接授权开通），显示「已开通」，不硬凑一个不存在的价格
+        const matchedPurchase = purchases.find((pu) => pu.product_id === pm.product_id);
         return (
-          <div className="purchase-row" key={pu.id} onClick={() => nav(`/product/${pu.product_id}`)}>
+          <div className="purchase-row" key={pm.id} onClick={() => nav(`/product/${pm.product_id}`)}>
             <div>
               <div className="pname">
                 {meta && <span className="type-chip" style={{ background: meta.tint, color: meta.color }}>{meta.icon} {meta.label}</span>}
-                {pu.products?.name}
+                {pm.products?.name}
               </div>
-              <div className="pmeta">{t('purchase_meta', pu.price, pu.purchased_at?.slice(0, 10))}</div>
+              <div className="pmeta">
+                {matchedPurchase ? t('purchase_meta', matchedPurchase.price, matchedPurchase.purchased_at?.slice(0, 10)) : t('course_granted_label')}
+              </div>
             </div>
           </div>
         );
