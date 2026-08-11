@@ -41,12 +41,8 @@ export default function Watermark({ text, active }) {
         {Array.from({ length: grid.count }).map((_, i) => {
           const col = i % grid.cols;
           const row = Math.floor(i / grid.cols);
-          const c = col % 3;
-          const r = row % 3;
-          // 骰仔五的排法：3x3 一组，四个角落 + 正中间才显示文字，其余位置留空
-          const isCorner = (r === 0 || r === 2) && (c === 0 || c === 2);
-          const isCenter = r === 1 && c === 1;
-          if (!isCorner && !isCenter) return <span key={i} className="wm-blank" />;
+          // 3x3 一组的方形排列：正中间放网址，四周（含四角）都放会员信箱
+          const isCenter = col % 3 === 1 && row % 3 === 1;
           return <span key={i} className={isCenter ? 'wm-url' : ''}>{isCenter ? SITE_URL : text}</span>;
         })}
       </div>

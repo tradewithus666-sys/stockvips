@@ -390,6 +390,9 @@ button{font-family:inherit;cursor:pointer;border:none;}
 .locked .article-flow .inline-pdf{filter:blur(10px);pointer-events:none;}
 .pdf-wrap{position:relative;}
 .pdf-block-corner{position:absolute;top:0;right:0;width:170px;height:58px;z-index:5;background:transparent;}
+.inline-video-wrap{position:relative;width:100%;padding-top:56.25%;border-radius:14px;overflow:hidden;background:#000;}
+.inline-video-wrap .inline-video{position:absolute;top:0;left:0;width:100%;height:100%;border:0;}
+.locked .inline-video-wrap{filter:blur(10px);pointer-events:none;}
 .locked .pdf-block-corner{display:none;}
 .product-gallery{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;margin-top:18px;padding-bottom:6px;}
 .product-gallery-img{width:200px;height:140px;object-fit:cover;border-radius:14px;border:1px solid var(--line);flex-shrink:0;scroll-snap-align:start;}

@@ -13,7 +13,7 @@ import {
 } from '../lib/api';
 import { useToast } from '../lib/ToastContext';
 import { useLang } from '../lib/LangContext';
-import { formatPublishedAt, usdtToHkd, USDT_TO_HKD_RATE } from '../lib/format';
+import { formatPublishedAt, usdtToHkd, USDT_TO_HKD_RATE, toEmbedUrl } from '../lib/format';
 import RichTextEditor from '../components/RichTextEditor';
 
 const EMPTY_PRODUCT = { name: '', type: 'course', image: '', price: 0, price_quarter: '', price_year: '', description: '', body: '', base_sold: 0, status: 'active' };
@@ -953,6 +953,7 @@ function ArticleForm({ products, categories = [], initial, onDone, onCancel, fix
   function addTextBlock() { setBlocks([...blocks, { type: 'text', value: '' }]); }
   function addImageBlock() { setBlocks([...blocks, { type: 'image', value: '' }]); }
   function addPdfBlock() { setBlocks([...blocks, { type: 'pdf', value: '' }]); }
+  function addVideoBlock() { setBlocks([...blocks, { type: 'video', value: '' }]); }
   function removeBlock(idx) { setBlocks(blocks.filter((_, i) => i !== idx)); }
   function moveBlock(idx, dir) {
     const j = idx + dir;
@@ -1197,6 +1198,19 @@ function ArticleForm({ products, categories = [], initial, onDone, onCancel, fix
                 <div className="upload-hint">{b.value ? b.value.split('/').pop() : t('pdf_row_upload_hint')}</div>
               </div>
             </div>
+          ) : b.type === 'video' ? (
+            <div style={{ flex: 1 }}>
+              <input
+                style={{ marginBottom: 6 }}
+                value={b.value}
+                onChange={(e) => updateBlock(idx, e.target.value)}
+                placeholder={t('video_url_placeholder')}
+              />
+              <div className="upload-hint">{t('video_url_hint')}</div>
+              {b.value && !toEmbedUrl(b.value) && (
+                <div className="upload-hint" style={{ color: 'var(--red)' }}>{t('video_url_invalid')}</div>
+              )}
+            </div>
           ) : (
             <textarea value={b.value} onChange={(e) => updateBlock(idx, e.target.value)} placeholder={t('field_body_text_placeholder')} />
           )}
@@ -1206,6 +1220,7 @@ function ArticleForm({ products, categories = [], initial, onDone, onCancel, fix
         <button className="btn btn-ghost btn-sm" onClick={addTextBlock}>{t('add_text_block_btn2')}</button>
         <button className="btn btn-ghost btn-sm" onClick={addImageBlock}>{t('add_image_block_btn2')}</button>
         <button className="btn btn-ghost btn-sm" onClick={addPdfBlock}>{t('add_pdf_block_btn2')}</button>
+        <button className="btn btn-ghost btn-sm" onClick={addVideoBlock}>{t('add_video_block_btn2')}</button>
       </div>
 
       <label className="tg-sync-checkbox">

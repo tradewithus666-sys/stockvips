@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../lib/AuthContext';
 import { useLang } from '../lib/LangContext';
-import { formatPublishedAt, linkify } from '../lib/format';
+import { formatPublishedAt, linkify, toEmbedUrl } from '../lib/format';
 
 export default function ArticleReader() {
   const { id } = useParams();
@@ -55,6 +55,13 @@ export default function ArticleReader() {
                   <div className="pdf-block-corner" />
                 </div>
               )
+              : b.type === 'video'
+              ? (() => {
+                  const embed = toEmbedUrl(b.value);
+                  return embed
+                    ? <div key={i} className="inline-video-wrap"><iframe className="inline-video" src={embed} title={`video-${i}`} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen /></div>
+                    : null;
+                })()
               : <div key={i} className="body-text">{linkify(b.value)}</div>
           )}
         </div>

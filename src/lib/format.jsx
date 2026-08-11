@@ -15,6 +15,17 @@ export function formatPublishedDateOnly(article) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
+// 把 YouTube／Vimeo 网址转成可以内嵌播放的网址
+export function toEmbedUrl(url) {
+  if (!url) return null;
+  const u = url.trim();
+  const yt = u.match(/(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{6,})/);
+  if (yt) return `https://www.youtube.com/embed/${yt[1]}`;
+  const vimeo = u.match(/vimeo\.com\/(?:video\/)?(\d+)/);
+  if (vimeo) return `https://player.vimeo.com/video/${vimeo[1]}`;
+  return null;
+}
+
 // 把纯文字里的网址自动转成可点击连结，新分页打开
 const URL_SPLIT_RE = /(https?:\/\/[^\s]+)/g;
 export function linkify(text) {
