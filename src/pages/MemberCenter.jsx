@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { fetchMyPermissions, fetchMyPurchases, fetchArticlesByProduct, purchaseWithBalance, fetchActiveAnnouncements } from '../lib/api';
+import { fetchMyPermissions, fetchMyPurchases, fetchArticlesByProduct, purchaseWithBalance, fetchActiveAnnouncements, toggleEmailNotify } from '../lib/api';
 import { useAuth } from '../lib/AuthContext';
 import { useToast } from '../lib/ToastContext';
 import { useLang } from '../lib/LangContext';
@@ -118,6 +118,24 @@ export default function MemberCenter() {
             <div>
               <div style={{ fontWeight: 700, fontSize: 14.5 }}>{pm.products?.name}</div>
               <div className={`expiry-big ${expired ? 'bad' : ''}`}>{t('expires_label')}{pm.expires_at ?? t('permanent_valid')}</div>
+              {isSub && (
+                <label className="notify-toggle">
+                  <input
+                    type="checkbox"
+                    checked={pm.notify_email !== false}
+                    onChange={async (e) => {
+                      const checked = e.target.checked;
+                      try {
+                        await toggleEmailNotify({ memberId: user.id, productId: pm.product_id, enabled: checked });
+                        setPerms((prev) => prev.map((x) => x.id === pm.id ? { ...x, notify_email: checked } : x));
+                      } catch (err) {
+                        showToast(err.message);
+                      }
+                    }}
+                  />
+                  {t('email_notify_label')}
+                </label>
+              )}
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
