@@ -17,7 +17,7 @@ import { useEffect, useRef, useState } from 'react';
 export default function Watermark({ text, active }) {
   const [grid, setGrid] = useState({ count: 0, cols: 2 });
   const timerRef = useRef(null);
-  const SITE_URL = 'Tradewithus888.com'; // 跟会员信箱一起穿插展示
+  const SITE_URL = 'Tradewithus888.com';
 
   useEffect(() => {
     function recompute() {
@@ -37,11 +37,13 @@ export default function Watermark({ text, active }) {
 
   return (
     <div className="global-watermark" aria-hidden="true">
-      <div className="global-watermark-inner">
+      <div className="global-watermark-inner" style={{ gridTemplateColumns: `repeat(${grid.cols}, 1fr)` }}>
         {Array.from({ length: grid.count }).map((_, i) => {
+          const col = i % grid.cols;
           const row = Math.floor(i / grid.cols);
-          // 整排交替：单数排显示信箱，双数排显示网址，形成上下相间的效果
-          return <span key={i}>{row % 2 === 0 ? text : SITE_URL}</span>;
+          // 3x3 一组的方形排列：正中间放网址，四周（含四角）都放会员信箱
+          const isCenter = col % 3 === 1 && row % 3 === 1;
+          return <span key={i}>{isCenter ? SITE_URL : text}</span>;
         })}
       </div>
     </div>
