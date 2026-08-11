@@ -378,7 +378,10 @@ button{font-family:inherit;cursor:pointer;border:none;}
    肉眼在正常亮度下不明显，但影像分析／AI 读图可以侦测到。*/
 .global-watermark-inner span{font-size:9px;font-weight:700;color:rgba(230,30,30,0.1);white-space:nowrap;margin:22px 28px;letter-spacing:0.4px;}
 .global-watermark-inner span.wm-url{color:rgba(20,40,140,0.1);}
+.global-watermark-inner span.wm-blank{visibility:hidden;}
 .protect-note{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:12px;margin-top:14px;}
+.email-notify-checkbox{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);margin-top:6px;cursor:pointer;}
+.email-notify-checkbox input{width:13px;height:13px;}
 .protect-note .dot{width:6px;height:6px;border-radius:50%;background:var(--green);flex-shrink:0;}
 .article-flow{display:flex;flex-direction:column;gap:16px;position:relative;z-index:1;}
 .article-flow .body-text{margin:0;}
