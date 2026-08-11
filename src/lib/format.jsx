@@ -15,7 +15,7 @@ export function formatPublishedDateOnly(article) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
-// 把 YouTube／Vimeo 网址转成可以内嵌播放的网址
+// 把 YouTube／Vimeo／Google Drive 网址转成可以内嵌播放的网址
 export function toEmbedUrl(url) {
   if (!url) return null;
   const u = url.trim();
@@ -23,6 +23,13 @@ export function toEmbedUrl(url) {
   if (yt) return `https://www.youtube.com/embed/${yt[1]}`;
   const vimeo = u.match(/vimeo\.com\/(?:video\/)?(\d+)/);
   if (vimeo) return `https://player.vimeo.com/video/${vimeo[1]}`;
+  // Google Drive：支援 /file/d/FILE_ID/view 或 open?id=FILE_ID 这两种常见网址格式，
+  // 转成 Drive 官方的内嵌预览网址（会跑出 Drive 自己的播放器，直接在页面里播放）。
+  // 注意：这个档案要先在 Drive 里设成「知道连结的任何人」都能查看，不然会员打开会看到「无权限」。
+  const driveFile = u.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+  if (driveFile) return `https://drive.google.com/file/d/${driveFile[1]}/preview`;
+  const driveOpen = u.match(/drive\.google\.com\/open\?id=([a-zA-Z0-9_-]+)/);
+  if (driveOpen) return `https://drive.google.com/file/d/${driveOpen[1]}/preview`;
   return null;
 }
 
