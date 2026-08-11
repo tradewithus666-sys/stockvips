@@ -4,11 +4,12 @@ import { supabase } from '../supabaseClient';
 import { useAuth } from '../lib/AuthContext';
 import { useLang } from '../lib/LangContext';
 import { formatPublishedAt, linkify, toEmbedUrl } from '../lib/format';
+import WatermarkedVideo from '../components/WatermarkedVideo';
 
 export default function ArticleReader() {
   const { id } = useParams();
   const nav = useNavigate();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { t } = useLang();
   const [article, setArticle] = useState(null);
   const [productId, setProductId] = useState(null);
@@ -59,7 +60,7 @@ export default function ArticleReader() {
               ? (() => {
                   const embed = toEmbedUrl(b.value);
                   return embed
-                    ? <div key={i} className="inline-video-wrap"><iframe className="inline-video" src={embed} title={`video-${i}`} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen /></div>
+                    ? <WatermarkedVideo key={i} embedUrl={embed} watermarkText={profile?.email ?? user?.email ?? ''} index={i} />
                     : null;
                 })()
               : <div key={i} className="body-text">{linkify(b.value)}</div>
