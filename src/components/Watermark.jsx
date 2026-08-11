@@ -17,12 +17,13 @@ import { useEffect, useRef, useState } from 'react';
 export default function Watermark({ text, active }) {
   const [count, setCount] = useState(0);
   const timerRef = useRef(null);
+  const SITE_URL = 'Tradewithus888.com'; // 每隔一个格子穿插网址，混在会员信箱浮水印之间
 
   useEffect(() => {
     function recompute() {
       const w = window.innerWidth * 1.4;
       const h = window.innerHeight * 1.4;
-      const cellW = 120, cellH = 80;
+      const cellW = 190, cellH = 130;
       const cols = Math.max(2, Math.ceil(w / cellW));
       const rows = Math.max(2, Math.ceil(h / cellH));
       setCount(Math.min(cols * rows, 600));
@@ -38,7 +39,7 @@ export default function Watermark({ text, active }) {
     <div className="global-watermark" aria-hidden="true">
       <div className="global-watermark-inner">
         {Array.from({ length: count }).map((_, i) => (
-          <span key={i}>{text}</span>
+          <span key={i}>{i % 2 === 0 ? text : SITE_URL}</span>
         ))}
       </div>
     </div>

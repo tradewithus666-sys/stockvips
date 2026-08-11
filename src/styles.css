@@ -375,7 +375,7 @@ button{font-family:inherit;cursor:pointer;border:none;}
    且不用 mix-blend-mode——改用一般透明度合成，色偏量固定可预期，
    之后不管截图落在深色底或图表白底上，都能用「R/B 通道相对 G 通道偏高」这个特征还原，
    肉眼在正常亮度下完全看不出来，但影像分析／AI 读图可以侦测到。*/
-.global-watermark-inner span{font-size:12px;font-weight:400;color:rgba(255,0,200,0.06);white-space:nowrap;margin:12px 16px;letter-spacing:0.4px;}
+.global-watermark-inner span{font-size:13px;font-weight:400;color:rgba(255,0,200,0.09);white-space:nowrap;margin:26px 34px;letter-spacing:0.4px;}
 .protect-note{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:12px;margin-top:14px;}
 .protect-note .dot{width:6px;height:6px;border-radius:50%;background:var(--green);flex-shrink:0;}
 .article-flow{display:flex;flex-direction:column;gap:16px;position:relative;z-index:1;}
