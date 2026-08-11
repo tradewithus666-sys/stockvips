@@ -401,8 +401,8 @@ button{font-family:inherit;cursor:pointer;border:none;}
 }
 /* Google Drive 内嵌预览播放器右上角有自己的「在新分页开启」跳出按钮，没办法直接移除跨网域
    iframe 里面的元素，疊一层透明遮挡层盖住那个位置，点了没反应但畫面上還是看得到。 */
-.inline-video-block-corner{position:absolute;top:0;right:0;width:64px;height:56px;z-index:5;background:transparent;}
-.inline-video-block-fs{position:absolute;bottom:0;right:0;width:70px;height:50px;z-index:5;background:transparent;}
+.inline-video-block-corner{position:absolute;top:0;right:0;width:90px;height:64px;z-index:50;background:transparent;pointer-events:auto;}
+.inline-video-block-fs{position:absolute;bottom:0;right:0;width:120px;height:64px;z-index:50;background:transparent;pointer-events:auto;}
 /* 影片内部自己的浮水印：跟着容器一起放大／进假全萤幕，不会像页面外层那个浮水印一样在全萤幕时消失 */
 .inline-video-watermark{
   position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
@@ -413,7 +413,7 @@ button{font-family:inherit;cursor:pointer;border:none;}
 .inline-video-fs-btn{
   position:absolute;bottom:14px;left:14px;width:34px;height:34px;border-radius:8px;
   background:rgba(0,0,0,0.55);color:#fff;font-size:16px;display:flex;align-items:center;justify-content:center;
-  z-index:6;border:1px solid rgba(255,255,255,0.2);
+  z-index:60;border:1px solid rgba(255,255,255,0.2);
 }
 .inline-video-fs-btn:hover{background:rgba(0,0,0,0.75);}
 .locked .pdf-block-corner{display:none;}
