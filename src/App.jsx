@@ -28,6 +28,50 @@ export default function App() {
   const showToast = useToast();
   const { t } = useLang();
 
+  // 关掉浏览器自己的捲动还原机制，避免跟我们下面自己写的还原逻辑互相打架
+  useEffect(() => {
+    if ('scrollRestoration' in window.history) {
+      window.history.scrollRestoration = 'manual';
+    }
+  }, []);
+
+  // ---------- 记住捲动位置，切换 App 后被系统重新载入时自动恢复 ----------
+  // 手机浏览器背景分页被系统回收内存后，切回来会整页重新载入（不是我们程式码的 bug，
+  // 是浏览器本身的记忆体管理机制），重新载入后画面会回到最顶端。这里用 sessionStorage
+  // 记住每个路径的捲动位置，重新载入后内容渲染完再自动帮你捲回原本的位置。
+  useEffect(() => {
+    let saveTimer = null;
+    function saveScroll() {
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(() => {
+        sessionStorage.setItem(`scrollpos:${location.pathname}`, String(window.scrollY));
+      }, 150); // 节流一下，不用每个 scroll 事件都写
+    }
+    window.addEventListener('scroll', saveScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', saveScroll);
+      clearTimeout(saveTimer);
+    };
+  }, [location.pathname]);
+
+  useEffect(() => {
+    const saved = sessionStorage.getItem(`scrollpos:${location.pathname}`);
+    if (!saved) return;
+    const y = Number(saved);
+    if (!y) return;
+    // 内容是非同步载入的（先转圈圈再渲染），要等实际内容够高了才能捲得到目标位置，
+    // 用短暂延迟＋多试几次的方式，而不是只捲一次就放弃
+    let attempts = 0;
+    const timer = setInterval(() => {
+      attempts += 1;
+      window.scrollTo(0, y);
+      if (document.body.scrollHeight > y + window.innerHeight || attempts > 10) {
+        clearInterval(timer);
+      }
+    }, 100);
+    return () => clearInterval(timer);
+  }, [location.pathname]);
+
   // ---------- 内容防护：非管理后台页面禁用右键菜单／拖拽／复制 ----------
   useEffect(() => {
     const isAdminRoute = location.pathname.startsWith('/admin');
