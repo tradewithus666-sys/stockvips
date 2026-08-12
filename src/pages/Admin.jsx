@@ -11,6 +11,7 @@ import {
   fetchHelpContent, updateHelpContent,
   fetchDiscordConfig, updateDiscordConfig, triggerDiscordSync,
   fetchTelegramSyncConfigs, createTelegramSyncConfig, updateTelegramSyncConfig, deleteTelegramSyncConfig, triggerTelegramSync,
+  fetchInviteLinks, createInviteLink, toggleInviteLink,
 } from '../lib/api';
 import { useToast } from '../lib/ToastContext';
 import { useLang } from '../lib/LangContext';
@@ -36,6 +37,7 @@ export default function Admin() {
           ['help', t('admin_tab_help')],
           ['discord', t('admin_tab_discord')],
           ['telegramsync', t('admin_tab_telegramsync')],
+          ['invites', '邀請連結'],
         ].map(([key, label]) => (
           <button
             key={key}
@@ -53,6 +55,122 @@ export default function Admin() {
       {tab === 'help' && <HelpTab />}
       {tab === 'discord' && <DiscordTab />}
       {tab === 'telegramsync' && <TelegramSyncTab />}
+      {tab === 'invites' && <InviteLinksTab />}
+    </div>
+  );
+}
+
+/* ---------------- 邀请连结管理 ---------------- */
+function InviteLinksTab() {
+  const [links, setLinks] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [creating, setCreating] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const showToast = useToast();
+
+  async function reload() {
+    const [l, p] = await Promise.all([fetchInviteLinks(), fetchProducts()]);
+    setLinks(l);
+    setProducts(p);
+    setLoading(false);
+  }
+  useEffect(() => { reload(); }, []);
+
+  async function handleToggle(id, enabled) {
+    await toggleInviteLink(id, !enabled);
+    reload();
+  }
+
+  function copyLink(code) {
+    const url = `${window.location.origin}/invite/${code}`;
+    navigator.clipboard.writeText(url);
+    showToast('连结已複製');
+  }
+
+  if (loading) return <div className="loading-screen">载入中…</div>;
+
+  return (
+    <div>
+      <div className="admin-header">
+        <div />
+        <button className="btn btn-amber" onClick={() => setCreating(true)}>+ 建立邀请连结</button>
+      </div>
+      {creating && <InviteLinkForm products={products} onDone={() => { setCreating(false); reload(); }} onCancel={() => setCreating(false)} />}
+      <table>
+        <thead>
+          <tr><th>備注</th><th>商品</th><th>時長</th><th>使用狀況</th><th>狀態</th><th>操作</th></tr>
+        </thead>
+        <tbody>
+          {links.map((l) => (
+            <tr key={l.id}>
+              <td>{l.label || '—'}</td>
+              <td>{l.products?.name}</td>
+              <td>{l.days ? `${l.days} 天` : '永久'}</td>
+              <td>{l.used_count} / {l.max_uses ?? '不限'}</td>
+              <td><span className={`pill ${l.enabled ? '' : 'off'}`}>{l.enabled ? '啟用中' : '已停用'}</span></td>
+              <td className="row-actions">
+                <div className="icon-btn" onClick={() => copyLink(l.code)}>🔗</div>
+                <div className="icon-btn" onClick={() => handleToggle(l.id, l.enabled)}>{l.enabled ? '⏸' : '▶'}</div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {!links.length && <div className="empty">尚未建立任何邀请连结</div>}
+    </div>
+  );
+}
+
+function InviteLinkForm({ products, onDone, onCancel }) {
+  const [productId, setProductId] = useState(products[0]?.id || '');
+  const [days, setDays] = useState('30');
+  const [maxUses, setMaxUses] = useState('50');
+  const [label, setLabel] = useState('');
+  const showToast = useToast();
+
+  async function handleSubmit() {
+    if (!productId) { showToast('请选择商品'); return; }
+    try {
+      await createInviteLink({
+        productId,
+        days: days ? Number(days) : null,
+        maxUses: maxUses ? Number(maxUses) : null,
+        label,
+      });
+      showToast('已建立邀请连结');
+      onDone();
+    } catch (err) {
+      showToast(err.message);
+    }
+  }
+
+  return (
+    <div className="form-panel">
+      <div style={{ fontWeight: 700, marginBottom: 14 }}>建立邀请连结</div>
+      <div className="form-grid">
+        <div className="field">
+          <label>商品</label>
+          <select value={productId} onChange={(e) => setProductId(e.target.value)}>
+            {products.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </select>
+        </div>
+        <div className="field">
+          <label>有效天数（留空＝永久）</label>
+          <input type="number" value={days} onChange={(e) => setDays(e.target.value)} placeholder="30" />
+        </div>
+        <div className="field">
+          <label>最多可被使用次数（留空＝不限）</label>
+          <input type="number" value={maxUses} onChange={(e) => setMaxUses(e.target.value)} placeholder="50" />
+        </div>
+        <div className="field" style={{ gridColumn: '1/-1' }}>
+          <label>备注（方便自己识别，例如「双十一推广」）</label>
+          <input value={label} onChange={(e) => setLabel(e.target.value)} />
+        </div>
+      </div>
+      <div className="row-actions">
+        <button className="btn btn-amber" onClick={handleSubmit}>建立</button>
+        <button className="btn btn-ghost" onClick={onCancel}>取消</button>
+      </div>
     </div>
   );
 }
