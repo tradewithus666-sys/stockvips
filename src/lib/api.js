@@ -170,17 +170,28 @@ export async function triggerDiscordSync() {
   return data;
 }
 
-/* ---------- Telegram 频道同步 ---------- */
-export async function fetchTelegramSyncConfig() {
-  const { data, error } = await supabase.from('telegram_sync_config').select('*').eq('id', 1).maybeSingle();
+/* ---------- Telegram 频道同步（支援多个来源频道） ---------- */
+export async function fetchTelegramSyncConfigs() {
+  const { data, error } = await supabase.from('telegram_sync_configs').select('*').order('created_at', { ascending: true });
   if (error) throw error;
   return data;
 }
 
-export async function updateTelegramSyncConfig(payload) {
-  const { data, error } = await supabase.from('telegram_sync_config').update(payload).eq('id', 1).select().single();
+export async function createTelegramSyncConfig(payload) {
+  const { data, error } = await supabase.from('telegram_sync_configs').insert(payload).select().single();
   if (error) throw error;
   return data;
+}
+
+export async function updateTelegramSyncConfig(id, payload) {
+  const { data, error } = await supabase.from('telegram_sync_configs').update(payload).eq('id', id).select().single();
+  if (error) throw error;
+  return data;
+}
+
+export async function deleteTelegramSyncConfig(id) {
+  const { error } = await supabase.from('telegram_sync_configs').delete().eq('id', id);
+  if (error) throw error;
 }
 
 export async function triggerTelegramSync() {

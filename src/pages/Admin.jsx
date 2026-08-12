@@ -9,7 +9,7 @@ import {
   fetchAllAnnouncements, createAnnouncement, updateAnnouncement, deleteAnnouncement,
   fetchHelpContent, updateHelpContent,
   fetchDiscordConfig, updateDiscordConfig, triggerDiscordSync,
-  fetchTelegramSyncConfig, updateTelegramSyncConfig, triggerTelegramSync,
+  fetchTelegramSyncConfigs, createTelegramSyncConfig, updateTelegramSyncConfig, deleteTelegramSyncConfig, triggerTelegramSync,
 } from '../lib/api';
 import { useToast } from '../lib/ToastContext';
 import { useLang } from '../lib/LangContext';
@@ -277,9 +277,10 @@ function DiscordTab() {
 
 /* ---------------- Telegram 频道同步 ---------------- */
 function TelegramSyncTab() {
-  const [config, setConfig] = useState(null);
+  const [configs, setConfigs] = useState([]);
   const [products, setProducts] = useState([]);
-  const [categories, setCategories] = useState([]);
+  const [categoriesMap, setCategoriesMap] = useState({}); // productId -> categories[]
+  const [editing, setEditing] = useState(null); // null | 'new' | config object
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [syncing, setSyncing] = useState(false);
@@ -287,34 +288,40 @@ function TelegramSyncTab() {
   const { t } = useLang();
 
   async function reload() {
-    const [cfg, prods] = await Promise.all([fetchTelegramSyncConfig(), fetchProducts()]);
-    setConfig(cfg);
+    const [cfgs, prods] = await Promise.all([fetchTelegramSyncConfigs(), fetchProducts()]);
+    setConfigs(cfgs);
     setProducts(prods.filter((p) => p.type === 'subscription'));
-    if (cfg?.target_product_id) {
-      const cats = await fetchCategoriesByProduct(cfg.target_product_id);
-      setCategories(cats);
-    }
     setLoading(false);
   }
   useEffect(() => { reload(); }, []);
 
-  async function handleProductChange(productId) {
-    setConfig({ ...config, target_product_id: productId, target_category_id: null });
-    const cats = productId ? await fetchCategoriesByProduct(productId) : [];
-    setCategories(cats);
+  async function ensureCategories(productId) {
+    if (!productId || categoriesMap[productId]) return;
+    const cats = await fetchCategoriesByProduct(productId);
+    setCategoriesMap((prev) => ({ ...prev, [productId]: cats }));
+  }
+
+  function startEdit(cfg) {
+    setEditing(cfg === 'new' ? { label: '', bot_token: '', source_chat_id: '', target_product_id: '', target_category_id: '', enabled: true } : { ...cfg });
+    if (cfg !== 'new' && cfg.target_product_id) ensureCategories(cfg.target_product_id);
   }
 
   async function handleSave() {
     setSaving(true);
     try {
-      await updateTelegramSyncConfig({
-        bot_token: config.bot_token || null,
-        source_chat_id: config.source_chat_id || null,
-        target_product_id: config.target_product_id || null,
-        target_category_id: config.target_category_id || null,
-        enabled: !!config.enabled,
-      });
+      const payload = {
+        label: editing.label || null,
+        bot_token: editing.bot_token || null,
+        source_chat_id: editing.source_chat_id || null,
+        target_product_id: editing.target_product_id || null,
+        target_category_id: editing.target_category_id || null,
+        enabled: !!editing.enabled,
+      };
+      if (editing.id) await updateTelegramSyncConfig(editing.id, payload);
+      else await createTelegramSyncConfig(payload);
       showToast(t('toast_discord_saved'));
+      setEditing(null);
+      reload();
     } catch (err) {
       showToast(err.message);
     } finally {
@@ -322,13 +329,17 @@ function TelegramSyncTab() {
     }
   }
 
+  async function handleDelete(id) {
+    if (!confirm(t('confirm_delete_telegram_config'))) return;
+    await deleteTelegramSyncConfig(id);
+    reload();
+  }
+
   async function handleSyncNow() {
     setSyncing(true);
     try {
       const result = await triggerTelegramSync();
-      if (result.status === 'ok') showToast(t('toast_discord_synced', result.synced));
-      else if (result.status === 'not_configured') showToast(t('toast_discord_not_configured'));
-      else showToast(t('toast_discord_sync_failed'));
+      showToast(t('toast_discord_synced', (result.channels || []).reduce((sum, c) => sum + (c.result?.synced || 0), 0)));
       reload();
     } catch (err) {
       showToast(err.message);
@@ -342,43 +353,80 @@ function TelegramSyncTab() {
   return (
     <div>
       <p style={{ color: 'var(--muted)', fontSize: 12.5, marginBottom: 16 }}>{t('telegramsync_hint')}</p>
-      <div className="form-panel">
-        <div className="form-grid">
-          <div className="field" style={{ gridColumn: '1/-1' }}>
-            <label>{t('discord_bot_token')} (Telegram)</label>
-            <input type="password" value={config.bot_token || ''} onChange={(e) => setConfig({ ...config, bot_token: e.target.value })} placeholder="123456:ABC-DEF..." />
-          </div>
-          <div className="field">
-            <label>{t('telegramsync_source_chat')}</label>
-            <input value={config.source_chat_id || ''} onChange={(e) => setConfig({ ...config, source_chat_id: e.target.value })} placeholder="-1001234567890" />
-          </div>
-          <div className="field">
-            <label>{t('discord_target_channel')}</label>
-            <select value={config.target_product_id || ''} onChange={(e) => handleProductChange(e.target.value)}>
-              <option value="">{t('category_none')}</option>
-              {products.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </select>
-          </div>
-          {config.target_product_id && (
+
+      <div className="admin-header">
+        <div />
+        <div className="row-actions">
+          <button className="btn btn-ghost" disabled={syncing} onClick={handleSyncNow}>{syncing ? t('processing') : t('discord_sync_now_btn')}</button>
+          <button className="btn btn-amber" onClick={() => startEdit('new')}>{t('add_telegram_channel_btn')}</button>
+        </div>
+      </div>
+
+      {editing && (
+        <div className="form-panel">
+          <div className="form-grid">
             <div className="field">
-              <label>{t('discord_target_category')}</label>
-              <select value={config.target_category_id || ''} onChange={(e) => setConfig({ ...config, target_category_id: e.target.value })}>
+              <label>{t('telegramsync_label')}</label>
+              <input value={editing.label || ''} onChange={(e) => setEditing({ ...editing, label: e.target.value })} placeholder="Sam Lam" />
+            </div>
+            <div className="field">
+              <label>{t('discord_bot_token')} (Telegram)</label>
+              <input type="password" value={editing.bot_token || ''} onChange={(e) => setEditing({ ...editing, bot_token: e.target.value })} placeholder="123456:ABC-DEF..." />
+            </div>
+            <div className="field">
+              <label>{t('telegramsync_source_chat')}</label>
+              <input value={editing.source_chat_id || ''} onChange={(e) => setEditing({ ...editing, source_chat_id: e.target.value })} placeholder="-1001234567890" />
+            </div>
+            <div className="field">
+              <label>{t('discord_target_channel')}</label>
+              <select
+                value={editing.target_product_id || ''}
+                onChange={(e) => { setEditing({ ...editing, target_product_id: e.target.value, target_category_id: '' }); ensureCategories(e.target.value); }}
+              >
                 <option value="">{t('category_none')}</option>
-                {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                {products.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select>
             </div>
-          )}
+            {editing.target_product_id && (
+              <div className="field">
+                <label>{t('discord_target_category')}</label>
+                <select value={editing.target_category_id || ''} onChange={(e) => setEditing({ ...editing, target_category_id: e.target.value })}>
+                  <option value="">{t('category_none')}</option>
+                  {(categoriesMap[editing.target_product_id] || []).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </div>
+            )}
+          </div>
+          <label className="tg-sync-checkbox">
+            <input type="checkbox" checked={!!editing.enabled} onChange={(e) => setEditing({ ...editing, enabled: e.target.checked })} />
+            {t('discord_enable_checkbox')}
+          </label>
+          <div className="row-actions">
+            <button className="btn btn-amber" disabled={saving} onClick={handleSave}>{saving ? t('processing') : t('save_btn')}</button>
+            <button className="btn btn-ghost" onClick={() => setEditing(null)}>{t('cancel_btn')}</button>
+          </div>
         </div>
-        <label className="tg-sync-checkbox">
-          <input type="checkbox" checked={!!config.enabled} onChange={(e) => setConfig({ ...config, enabled: e.target.checked })} />
-          {t('discord_enable_checkbox')}
-        </label>
-        <div className="row-actions">
-          <button className="btn btn-amber" disabled={saving} onClick={handleSave}>{saving ? t('processing') : t('save_btn')}</button>
-          <button className="btn btn-ghost" disabled={syncing} onClick={handleSyncNow}>{syncing ? t('processing') : t('discord_sync_now_btn')}</button>
+      )}
+
+      {configs.map((cfg) => (
+        <div className="member-card" key={cfg.id}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
+            <div>
+              <div style={{ fontWeight: 700 }}>{cfg.label || t('telegramsync_unnamed')}</div>
+              <div style={{ fontSize: 12, color: 'var(--muted)' }}>
+                {t('telegramsync_source_chat')}: {cfg.source_chat_id || '—'} · {products.find((p) => p.id === cfg.target_product_id)?.name || '—'}
+              </div>
+              {cfg.last_update_id && <div className="upload-hint">{t('discord_last_synced')}: {cfg.last_update_id}</div>}
+            </div>
+            <div className="row-actions">
+              <span className={`pill ${cfg.enabled ? '' : 'off'}`}>{cfg.enabled ? t('status_active') : t('status_off')}</span>
+              <button className="btn btn-ghost btn-sm" onClick={() => startEdit(cfg)}>{t('edit_btn')}</button>
+              <div className="icon-btn" onClick={() => handleDelete(cfg.id)}>🗑</div>
+            </div>
+          </div>
         </div>
-        {config.last_update_id && <div className="upload-hint" style={{ marginTop: 10 }}>{t('discord_last_synced')}: {config.last_update_id}</div>}
-      </div>
+      ))}
+      {!configs.length && <div className="empty">{t('no_telegram_configs_yet')}</div>}
     </div>
   );
 }
