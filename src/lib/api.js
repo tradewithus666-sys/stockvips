@@ -402,3 +402,40 @@ export async function fetchMyFavoriteArticles(memberId) {
   if (error) throw error;
   return data.map((r) => r.articles).filter(Boolean);
 }
+
+/* ---------- 邀请连结（分享连结自动开通权限） ---------- */
+export async function fetchInviteLinks() {
+  const { data, error } = await supabase.from('invite_links').select('*, products(name)').order('created_at', { ascending: false });
+  if (error) throw error;
+  return data;
+}
+
+export async function createInviteLink({ productId, days, maxUses, label }) {
+  const code = crypto.randomUUID().slice(0, 8);
+  const { data, error } = await supabase
+    .from('invite_links')
+    .insert({ code, product_id: productId, days: days || null, max_uses: maxUses || null, label })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function toggleInviteLink(id, enabled) {
+  const { error } = await supabase.from('invite_links').update({ enabled }).eq('id', id);
+  if (error) throw error;
+}
+
+// 这个是给未登入的访客也能看的（邀请连结落地页要显示「你将获得 XX 权限」），
+// 呼叫的是走 security definer 的 RPC，不受一般 RLS 限制
+export async function fetchInvitePublic(code) {
+  const { data, error } = await supabase.rpc('fetch_invite_link_public', { p_code: code });
+  if (error) throw error;
+  return data;
+}
+
+export async function redeemInviteLink(code) {
+  const { data, error } = await supabase.rpc('redeem_invite_link', { p_code: code });
+  if (error) throw error;
+  return data;
+}

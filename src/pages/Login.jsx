@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { useToast } from '../lib/ToastContext';
 import { useAuth } from '../lib/AuthContext';
@@ -11,6 +11,7 @@ export default function Login() {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const nav = useNavigate();
+  const [searchParams] = useSearchParams();
   const showToast = useToast();
   const { claimSession, loginWithGoogle } = useAuth();
   const { t } = useLang();
@@ -25,7 +26,9 @@ export default function Login() {
     if (data?.user?.id) await claimSession(data.user.id);
     setBusy(false);
     showToast(t('toast_welcome_back', email));
-    nav('/');
+    // 【本次新增】如果是从邀请连结导来登入的（网址带 ?redirect=/invite/xxx），登入完导回原本那个连结，
+    // 不是傻傻导去首页——不然会员登入完还要自己再找一次邀请连结才能兑换
+    nav(searchParams.get('redirect') || '/');
   }
 
   async function handleGoogleLogin() {
@@ -69,7 +72,7 @@ export default function Login() {
           <button className="btn btn-amber btn-block" style={{ marginTop: 8 }} disabled={busy} type="submit">
             {busy ? t('logging_in') : t('login_btn')}
           </button>
-          <div className="auth-switch">{t('no_account_yet')} <a onClick={() => nav('/register')}>{t('register_now')}</a></div>
+          <div className="auth-switch">{t('no_account_yet')} <a onClick={() => nav(`/register${searchParams.get('redirect') ? `?redirect=${encodeURIComponent(searchParams.get('redirect'))}` : ''}`)}>{t('register_now')}</a></div>
         </form>
       </div>
     </div>

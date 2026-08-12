@@ -6,6 +6,7 @@ import RequireAdmin from './components/RequireAdmin';
 import { useAuth } from './lib/AuthContext';
 import { useToast } from './lib/ToastContext';
 import { useLang } from './lib/LangContext';
+import { redeemInviteLink } from './lib/api';
 
 import Home from './pages/Home';
 import Login from './pages/Login';
@@ -18,8 +19,10 @@ import Wallet from './pages/Wallet';
 import Help from './pages/Help';
 import PayUsdt from './pages/PayUsdt';
 import Admin from './pages/Admin';
+import Invite from './pages/Invite';
 
 const WATERMARK_PATHS = ['/member', '/wallet'];
+const PENDING_INVITE_KEY = 'stockvip_pending_invite';
 
 export default function App() {
   const { profile, loading, kicked, clearKicked } = useAuth();
@@ -28,24 +31,19 @@ export default function App() {
   const showToast = useToast();
   const { t } = useLang();
 
-  // 关掉浏览器自己的捲动还原机制，避免跟我们下面自己写的还原逻辑互相打架
   useEffect(() => {
     if ('scrollRestoration' in window.history) {
       window.history.scrollRestoration = 'manual';
     }
   }, []);
 
-  // ---------- 记住捲动位置，切换 App 后被系统重新载入时自动恢复 ----------
-  // 手机浏览器背景分页被系统回收内存后，切回来会整页重新载入（不是我们程式码的 bug，
-  // 是浏览器本身的记忆体管理机制），重新载入后画面会回到最顶端。这里用 sessionStorage
-  // 记住每个路径的捲动位置，重新载入后内容渲染完再自动帮你捲回原本的位置。
   useEffect(() => {
     let saveTimer = null;
     function saveScroll() {
       clearTimeout(saveTimer);
       saveTimer = setTimeout(() => {
         sessionStorage.setItem(`scrollpos:${location.pathname}`, String(window.scrollY));
-      }, 150); // 节流一下，不用每个 scroll 事件都写
+      }, 150);
     }
     window.addEventListener('scroll', saveScroll, { passive: true });
     return () => {
@@ -59,8 +57,6 @@ export default function App() {
     if (!saved) return;
     const y = Number(saved);
     if (!y) return;
-    // 内容是非同步载入的（先转圈圈再渲染），要等实际内容够高了才能捲得到目标位置，
-    // 用短暂延迟＋多试几次的方式，而不是只捲一次就放弃
     let attempts = 0;
     const timer = setInterval(() => {
       attempts += 1;
@@ -72,7 +68,6 @@ export default function App() {
     return () => clearInterval(timer);
   }, [location.pathname]);
 
-  // ---------- 内容防护：非管理后台页面禁用右键菜单／拖拽／复制 ----------
   useEffect(() => {
     const isAdminRoute = location.pathname.startsWith('/admin');
     document.body.classList.toggle('protected-mode', !isAdminRoute);
@@ -96,7 +91,6 @@ export default function App() {
     };
   }, [location.pathname, showToast, t]);
 
-  // ---------- 单一装置登录：侦测到被新装置挤下线时提示并导回登录页 ----------
   useEffect(() => {
     if (kicked) {
       showToast(t('toast_kicked'));
@@ -104,6 +98,30 @@ export default function App() {
       nav('/login');
     }
   }, [kicked, clearKicked, nav, showToast, t]);
+
+  // ---------- 邀请连结备援机制 ----------
+  // 应付「需要信箱验证」的注册流程：会员从邀请连结去注册，验证信里的连结会把他导回
+  // Supabase 后台设定的固定网址（不会带着 /invite/xxx 这个路径），所以他验证完、正常登入进来后，
+  // 这里侦测到 profile 载入成功、且 localStorage 里还留着一个「尚未兑换」的邀请码，
+  // 就自动帮他补兑换一次，不用他自己再去找一次那条连结。
+  useEffect(() => {
+    if (!profile) return;
+    const pendingCode = localStorage.getItem(PENDING_INVITE_KEY);
+    if (!pendingCode) return;
+    // 如果使用者现在人正在邀请连结页面本身，让 Invite.jsx 自己处理就好，这里不重複兑换
+    if (location.pathname.startsWith('/invite/')) return;
+
+    redeemInviteLink(pendingCode)
+      .then((res) => {
+        localStorage.removeItem(PENDING_INVITE_KEY);
+        if (res.status === 'ok') {
+          showToast('你的邀请奖励已自动开通！');
+        }
+      })
+      .catch(() => {
+        localStorage.removeItem(PENDING_INVITE_KEY);
+      });
+  }, [profile, location.pathname, showToast]);
 
   if (loading) return <div className="loading-screen">{t('loading')}</div>;
 
@@ -130,6 +148,7 @@ export default function App() {
           <Route path="/wallet" element={<Wallet />} />
           <Route path="/help" element={<Help />} />
           <Route path="/pay/:id" element={<PayUsdt />} />
+          <Route path="/invite/:code" element={<Invite />} />
           {/* 管理后台入口已从导览列移除，仅能直接输入 /admin 网址进入，由 RequireAdmin 做权限保护 */}
           <Route path="/admin" element={<RequireAdmin><Admin /></RequireAdmin>} />
         </Routes>

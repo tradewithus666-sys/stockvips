@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { useToast } from '../lib/ToastContext';
 import { useAuth } from '../lib/AuthContext';
@@ -15,6 +15,7 @@ export default function Register() {
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
   const nav = useNavigate();
+  const [searchParams] = useSearchParams();
   const showToast = useToast();
   const { claimSession, loginWithGoogle } = useAuth();
   const { t } = useLang();
@@ -32,7 +33,8 @@ export default function Register() {
     if (data?.session && data?.user?.id) {
       await claimSession(data.user.id);
       showToast(t('toast_welcome_back', email));
-      nav('/');
+      // 【本次新增】同 Login.jsx：从邀请连结导来注册的，注册完（如果没开信箱验证）直接导回原本的邀请连结
+      nav(searchParams.get('redirect') || '/');
       return;
     }
     setSent(true);
