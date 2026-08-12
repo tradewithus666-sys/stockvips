@@ -272,6 +272,19 @@ export async function notifyProductContentUpdated(productId) {
   return data;
 }
 
+// 新商品发布时，广播给「全体会员」（不限于已订阅的人）
+export async function notifyAllMembersNewProduct(productId) {
+  const { data, error } = await supabase.rpc('notify_all_members_new_product', { p_product_id: productId });
+  if (error) throw error;
+  return data;
+}
+
+export async function notifyTelegramNewProduct(productId) {
+  const { data, error } = await supabase.rpc('notify_telegram_new_product', { p_product_id: productId });
+  if (error) throw error;
+  return data;
+}
+
 export async function revokePermission({ memberId, productId }) {
   const { error } = await supabase
     .from('permissions')

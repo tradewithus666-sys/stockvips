@@ -4,6 +4,7 @@ import { uploadImage } from '../lib/storage';
 import {
   fetchProducts, createProduct, updateProduct, deleteProduct, reorderProducts,
   fetchAllMembers, grantPermission, revokePermission, adjustMemberBalance, notifyPermissionGranted, notifyProductContentUpdated,
+  notifyAllMembersNewProduct, notifyTelegramNewProduct,
   createArticle, updateArticle, deleteArticle, notifyTelegramArticle, notifyArticleByEmail,
   fetchCategoriesByProduct, createCategory, deleteCategory,
   fetchAllAnnouncements, createAnnouncement, updateAnnouncement, deleteAnnouncement,
@@ -445,7 +446,7 @@ function ProductsTab() {
 
   async function handleSave(form) {
     try {
-      const { id, _notifyOnSave, ...rest } = form;
+      const { id, _notifyOnSave, _notifyEmailNewProduct, _notifyTelegramNewProduct, ...rest } = form;
       const payload = {
         ...rest,
         price: Number(form.price) || 0,
@@ -459,7 +460,13 @@ function ProductsTab() {
           try { await notifyProductContentUpdated(id); } catch (err) { showToast(t('toast_content_notify_failed', err.message)); }
         }
       } else {
-        await createProduct({ ...payload, sort_order: products.length });
+        const created = await createProduct({ ...payload, sort_order: products.length });
+        if (_notifyEmailNewProduct) {
+          try { await notifyAllMembersNewProduct(created.id); } catch (err) { showToast(t('toast_content_notify_failed', err.message)); }
+        }
+        if (_notifyTelegramNewProduct) {
+          try { await notifyTelegramNewProduct(created.id); } catch (err) { showToast(err.message); }
+        }
       }
       setEditing(null);
       showToast(t('toast_saved'));
@@ -620,6 +627,8 @@ function ProductForm({ initial, onSave, onCancel }) {
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
   const [uploading, setUploading] = useState(false);
   const [notifyOnSave, setNotifyOnSave] = useState(false); // 只有编辑既有商品时才有意义，预设不勾避免小改动就骚扰会员
+  const [notifyEmailNewProduct, setNotifyEmailNewProduct] = useState(true); // 新商品发布时广播给全体会员，预设打勾
+  const [notifyTelegramNewProduct, setNotifyTelegramNewProduct] = useState(true);
   const showToast = useToast();
   const { t } = useLang();
 
@@ -663,7 +672,12 @@ function ProductForm({ initial, onSave, onCancel }) {
     const cleanOptions = form.type === 'course'
       ? form.options.filter((o) => o.name.trim()).map((o) => ({ name: o.name.trim(), price: Number(o.price) || 0, body: o.body || '' }))
       : [];
-    onSave({ ...form, images: form.images, image: form.images[0] || '', options: cleanOptions, _notifyOnSave: notifyOnSave });
+    onSave({
+      ...form, images: form.images, image: form.images[0] || '', options: cleanOptions,
+      _notifyOnSave: notifyOnSave,
+      _notifyEmailNewProduct: notifyEmailNewProduct,
+      _notifyTelegramNewProduct: notifyTelegramNewProduct,
+    });
   }
 
   return (
@@ -759,6 +773,18 @@ function ProductForm({ initial, onSave, onCancel }) {
           <input type="checkbox" checked={notifyOnSave} onChange={(e) => setNotifyOnSave(e.target.checked)} />
           {t('notify_on_content_update_checkbox')}
         </label>
+      )}
+      {!form.id && (
+        <>
+          <label className="tg-sync-checkbox">
+            <input type="checkbox" checked={notifyEmailNewProduct} onChange={(e) => setNotifyEmailNewProduct(e.target.checked)} />
+            {t('notify_email_new_product_checkbox')}
+          </label>
+          <label className="tg-sync-checkbox">
+            <input type="checkbox" checked={notifyTelegramNewProduct} onChange={(e) => setNotifyTelegramNewProduct(e.target.checked)} />
+            {t('notify_telegram_new_product_checkbox')}
+          </label>
+        </>
       )}
       <div className="row-actions">
         <button className="btn btn-amber" onClick={saveWithImages}>{t('save_btn')}</button>
