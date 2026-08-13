@@ -38,8 +38,8 @@ export default async (req) => {
   }
 
   try {
-    // 90 秒没更新，视为这一分钟已经结束、不会再有消息进来了
-    const cutoff = new Date(Date.now() - 90 * 1000).toISOString();
+    // 45 秒没更新，视为这一分钟已经结束、不会再有消息进来了
+    const cutoff = new Date(Date.now() - 45 * 1000).toISOString();
     const staged = await sbFetch(
       `email_notify_staging?flushed=eq.false&last_updated_at=lt.${cutoff}&select=*`
     );
