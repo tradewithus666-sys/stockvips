@@ -108,11 +108,29 @@ async function appendToTodayArticle(config, timeHeader, contentBlock, minuteKey)
   return articleId;
 }
 
-async function queueEmailNotification(productId, articleId, contentText) {
-  await sbFetch('pending_email_notifications', {
-    method: 'POST',
-    body: JSON.stringify({ product_id: productId, article_id: articleId, preview: contentText }),
-  });
+async function stageEmailContent(productId, minuteKey, articleId, newLine) {
+  // 用 upsert：同一个 (product_id, minute_key) 已经有暂存记录的话，把新内容接在后面、更新 last_updated_at；
+  // 没有的话新建一笔。之后由独立排程判断「多久没更新了」才真正寄出，达到「同一分钟只寄一次」的效果。
+  const existing = await sbFetch(
+    `email_notify_staging?product_id=eq.${productId}&minute_key=eq.${encodeURIComponent(minuteKey)}&select=content`
+  );
+  const prevContent = existing?.[0]?.content;
+
+  if (prevContent !== undefined) {
+    const merged = prevContent ? `${prevContent}\n${newLine}` : newLine;
+    await sbFetch(
+      `email_notify_staging?product_id=eq.${productId}&minute_key=eq.${encodeURIComponent(minuteKey)}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({ content: merged, article_id: articleId, last_updated_at: new Date().toISOString(), flushed: false }),
+      }
+    );
+  } else {
+    await sbFetch('email_notify_staging', {
+      method: 'POST',
+      body: JSON.stringify({ product_id: productId, minute_key: minuteKey, article_id: articleId, content: newLine }),
+    });
+  }
 }
 
 // ---------- Netlify Function 入口 ----------
@@ -183,7 +201,7 @@ export default async (req) => {
     }
 
     const articleId = await appendToTodayArticle(config, timeHeader, contentBlock, minuteKey);
-    await queueEmailNotification(config.target_product_id, articleId, content).catch(() => {});
+    await stageEmailContent(config.target_product_id, minuteKey, articleId, content).catch(() => {});
 
     return new Response(JSON.stringify({ status: 'ok', article_id: articleId }), {
       status: 200,
