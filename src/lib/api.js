@@ -348,6 +348,7 @@ export async function notifyArticleByEmail(productId, articleId, preview) {
     p_product_id: productId,
     p_article_id: articleId,
     p_preview: preview ?? '',
+    p_manual: true, // 人手在後台發布文章觸發的通知，標題用「📢 [頻道名稱][標題] 已发布」格式
   });
   if (error) throw error;
   return data;
