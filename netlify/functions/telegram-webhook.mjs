@@ -48,64 +48,24 @@ function hkMinuteStr(d) {
   return d.toLocaleString('sv-SE', { timeZone: 'Asia/Hong_Kong' }).slice(0, 16).replace('T', ' ');
 }
 
-// ---------- 把这则消息接进今天的文章（新建或续接） ----------
+// ---------- 把这则消息接进今天的文章（新建或续接）----------
+// 改成呼叫资料库函式做，让「读取 -> 计算 -> 写回」整个包在一个有行级锁保护的
+// 原子操作里，同一频道如果好几个 webhook 请求几乎同时打进来（例如转发工具一次
+// 补发一大串历史消息），会被强制排队依序处理，不会再互相覆盖彼此的内容。
 async function appendToTodayArticle(config, timeHeader, contentBlock, minuteKey) {
-  const today = hkDateStr(hkNow());
-  const divider = { type: 'text', value: '──────────────────' };
-
-  let article = null;
-  if (config.current_article_id && config.current_article_date === today) {
-    const rows = await sbFetch(`articles?id=eq.${config.current_article_id}&select=id,blocks,top_minute_key,top_minute_count`);
-    article = rows?.[0] || null;
-  }
-
-  if (!article) {
-    const productRows = await sbFetch(`products?id=eq.${config.target_product_id}&select=name`);
-    const productName = productRows?.[0]?.name || '';
-    const title = `${productName} 實時資訊`;
-    const created = await sbFetch('articles', {
-      method: 'POST',
-      headers: { Prefer: 'return=representation' },
-      body: JSON.stringify({
-        product_id: config.target_product_id,
-        category_id: config.target_category_id || null,
-        title,
-        summary: '',
-        blocks: [timeHeader, ...contentBlock],
-        top_minute_key: minuteKey,
-        top_minute_count: 1 + contentBlock.length,
-      }),
-    });
-    const articleId = created[0].id;
-    await sbFetch(`telegram_sync_configs?id=eq.${config.id}`, {
-      method: 'PATCH',
-      body: JSON.stringify({ current_article_id: articleId, current_article_date: today }),
-    });
-    return articleId;
-  }
-
-  const articleId = article.id;
-  let newBlocks, newTopKey, newTopCount;
-
-  if (article.top_minute_key === minuteKey) {
-    const top = article.blocks.slice(0, article.top_minute_count);
-    const rest = article.blocks.slice(article.top_minute_count);
-    newBlocks = [...top, ...contentBlock, ...rest];
-    newTopKey = minuteKey;
-    newTopCount = article.top_minute_count + contentBlock.length;
-  } else {
-    newBlocks = article.blocks.length
-      ? [timeHeader, ...contentBlock, divider, ...article.blocks]
-      : [timeHeader, ...contentBlock];
-    newTopKey = minuteKey;
-    newTopCount = 1 + contentBlock.length;
-  }
-
-  await sbFetch(`articles?id=eq.${articleId}`, {
-    method: 'PATCH',
-    body: JSON.stringify({ blocks: newBlocks, top_minute_key: newTopKey, top_minute_count: newTopCount }),
+  const result = await sbFetch('rpc/append_telegram_message', {
+    method: 'POST',
+    body: JSON.stringify({
+      p_config_id: config.id,
+      p_time_header: timeHeader,
+      p_content_block: contentBlock,
+      p_minute_key: minuteKey,
+    }),
   });
-  return articleId;
+  if (result?.status !== 'ok') {
+    throw new Error('append_telegram_message failed: ' + JSON.stringify(result));
+  }
+  return result.article_id;
 }
 
 async function stageEmailContent(productId, minuteKey, articleId, newLine) {
@@ -162,7 +122,10 @@ export default async (req) => {
       return new Response(JSON.stringify({ status: 'not_configured' }), { status: 200 });
     }
 
-    const post = update.channel_post || update.message;
+    // 有些第三方转发工具（例如 ForwardMsg）是用「使用者自己的 Telegram 帐号」模拟操作，
+    // 而不是走一般 Bot API 直接发送，实际送出的事件类型可能是「已编辑」而不是「新发布」
+    // （例如工具先发一个占位消息、再编辑内容进去），这里把这几种类型都一并接受
+    const post = update.channel_post || update.message || update.edited_channel_post || update.edited_message;
     if (!post) return new Response(JSON.stringify({ status: 'ignored' }), { status: 200 });
     if (String(post.chat?.id) !== String(config.source_chat_id)) {
       return new Response(JSON.stringify({ status: 'ignored_wrong_chat' }), { status: 200 });
