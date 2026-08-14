@@ -459,3 +459,22 @@ export async function generateChannelInviteLink(productId) {
   if (error) throw error;
   return data;
 }
+
+/* ---------- 一键新增/删除 Telegram 频道 ---------- */
+export async function registerTelegramChannel({ label, botToken, sourceChatId, targetProductId, targetCategoryId }) {
+  const { data, error } = await supabase.rpc('register_telegram_channel', {
+    p_label: label,
+    p_bot_token: botToken,
+    p_source_chat_id: sourceChatId,
+    p_target_product_id: targetProductId,
+    p_target_category_id: targetCategoryId || null,
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function deregisterTelegramChannel(configId) {
+  const { data, error } = await supabase.rpc('deregister_telegram_channel', { p_config_id: configId });
+  if (error) throw error;
+  return data;
+}

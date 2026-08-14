@@ -11,6 +11,7 @@ import {
   fetchHelpContent, updateHelpContent,
   fetchDiscordConfig, updateDiscordConfig, triggerDiscordSync,
   fetchTelegramSyncConfigs, createTelegramSyncConfig, updateTelegramSyncConfig, deleteTelegramSyncConfig, triggerTelegramSync,
+  registerTelegramChannel, deregisterTelegramChannel,
   fetchInviteLinks, createInviteLink, toggleInviteLink,
 } from '../lib/api';
 import { useToast } from '../lib/ToastContext';
@@ -428,17 +429,34 @@ function TelegramSyncTab() {
   async function handleSave() {
     setSaving(true);
     try {
-      const payload = {
-        label: editing.label || null,
-        bot_token: editing.bot_token || null,
-        source_chat_id: editing.source_chat_id || null,
-        target_product_id: editing.target_product_id || null,
-        target_category_id: editing.target_category_id || null,
-        enabled: !!editing.enabled,
-      };
-      if (editing.id) await updateTelegramSyncConfig(editing.id, payload);
-      else await createTelegramSyncConfig(payload);
-      showToast(t('toast_discord_saved'));
+      if (editing.id) {
+        // 编辑既有的：只更新一般栏位，不重新注册 webhook（避免改个备注名称就重新跑一次注册流程）
+        const payload = {
+          label: editing.label || null,
+          bot_token: editing.bot_token || null,
+          source_chat_id: editing.source_chat_id || null,
+          target_product_id: editing.target_product_id || null,
+          target_category_id: editing.target_category_id || null,
+          enabled: !!editing.enabled,
+        };
+        await updateTelegramSyncConfig(editing.id, payload);
+        showToast(t('toast_discord_saved'));
+      } else {
+        // 新增：一次做完「写进资料库」+「注册 webhook」两件事，不用再手动组网址
+        const result = await registerTelegramChannel({
+          label: editing.label,
+          botToken: editing.bot_token,
+          sourceChatId: editing.source_chat_id,
+          targetProductId: editing.target_product_id,
+          targetCategoryId: editing.target_category_id,
+        });
+        if (result.status !== 'ok') {
+          showToast(t('channel_register_failed_toast'));
+          setSaving(false);
+          return;
+        }
+        showToast(t('channel_register_success_toast'));
+      }
       setEditing(null);
       reload();
     } catch (err) {
@@ -450,7 +468,12 @@ function TelegramSyncTab() {
 
   async function handleDelete(id) {
     if (!confirm(t('confirm_delete_telegram_config'))) return;
-    await deleteTelegramSyncConfig(id);
+    try {
+      await deregisterTelegramChannel(id);
+      showToast(t('channel_deregister_success_toast'));
+    } catch (err) {
+      showToast(err.message);
+    }
     reload();
   }
 
@@ -483,6 +506,11 @@ function TelegramSyncTab() {
 
       {editing && (
         <div className="form-panel">
+          {!editing.id && (
+            <div className="upload-hint" style={{ marginBottom: 14, lineHeight: 1.7 }}>
+              {t('channel_setup_steps_hint')}
+            </div>
+          )}
           <div className="form-grid">
             <div className="field">
               <label>{t('telegramsync_label')}</label>
@@ -521,7 +549,9 @@ function TelegramSyncTab() {
             {t('discord_enable_checkbox')}
           </label>
           <div className="row-actions">
-            <button className="btn btn-amber" disabled={saving} onClick={handleSave}>{saving ? t('processing') : t('save_btn')}</button>
+            <button className="btn btn-amber" disabled={saving} onClick={handleSave}>
+              {saving ? t('processing') : editing.id ? t('save_btn') : t('channel_register_btn')}
+            </button>
             <button className="btn btn-ghost" onClick={() => setEditing(null)}>{t('cancel_btn')}</button>
           </div>
         </div>
