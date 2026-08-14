@@ -122,6 +122,21 @@ export default async (req) => {
       return new Response(JSON.stringify({ status: 'not_configured' }), { status: 200 });
     }
 
+    // 「加入审核」事件：有人拿邀请连结申请加入频道，交给资料库那边判断
+    // 这个 Telegram 帐号有没有绑定网站会员、且真的持有有效权限，符合才自动核准
+    if (update.chat_join_request) {
+      const req = update.chat_join_request;
+      const result = await sbFetch('rpc/handle_telegram_join_request', {
+        method: 'POST',
+        body: JSON.stringify({
+          p_chat_id: String(req.chat.id),
+          p_telegram_user_id: String(req.from.id),
+          p_bot_token: config.bot_token,
+        }),
+      });
+      return new Response(JSON.stringify(result), { status: 200 });
+    }
+
     // 有些第三方转发工具（例如 ForwardMsg）是用「使用者自己的 Telegram 帐号」模拟操作，
     // 而不是走一般 Bot API 直接发送，实际送出的事件类型可能是「已编辑」而不是「新发布」
     // （例如工具先发一个占位消息、再编辑内容进去），这里把这几种类型都一并接受

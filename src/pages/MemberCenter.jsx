@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { fetchMyPermissions, fetchMyPurchases, fetchArticlesByProduct, purchaseWithBalance, fetchActiveAnnouncements, toggleEmailNotify, fetchMyFavoriteArticles, generateTelegramBindToken, fetchMyTelegramBinding, generateChannelInviteLink, fetchProductsWithTelegramChannel } from '../lib/api';
+import { fetchMyPermissions, fetchMyPurchases, fetchArticlesByProduct, purchaseWithBalance, fetchActiveAnnouncements, toggleEmailNotify, fetchMyFavoriteArticles, generateTelegramBindToken, fetchMyTelegramBinding, generateChannelInviteLink, fetchProductsWithTelegramChannel, unbindTelegramAccount } from '../lib/api';
 import { useAuth } from '../lib/AuthContext';
 import { useToast } from '../lib/ToastContext';
 import { useLang } from '../lib/LangContext';
@@ -53,6 +53,20 @@ export default function MemberCenter() {
       const token = await generateTelegramBindToken();
       window.open(`https://t.me/Stockvip_noti_bot?start=${token}`, '_blank', 'noopener');
       showToast(t('telegram_bind_opened_toast'));
+    } catch (err) {
+      showToast(err.message);
+    } finally {
+      setBindingBusy(false);
+    }
+  }
+
+  async function handleUnbindTelegram() {
+    if (!confirm(t('confirm_unbind_telegram'))) return;
+    setBindingBusy(true);
+    try {
+      await unbindTelegramAccount();
+      setTelegramBinding({ bound: false });
+      showToast(t('telegram_unbound_toast'));
     } catch (err) {
       showToast(err.message);
     } finally {
@@ -242,10 +256,18 @@ export default function MemberCenter() {
             <div className="meta">{t('current_device')}<br /><b>{device}</b>{loginAt ? ` · ${loginAt}` : ''}</div>
           </div>
           {telegramBinding?.bound ? (
-            <div className="session-box">
-              <span className="dotlive"></span>
-              <div className="meta">{t('telegram_bound_label')}<br /><b>@{telegramBinding.telegram_username || t('telegram_bound_no_username')}</b></div>
-            </div>
+            <>
+              <div className="session-box">
+                <span className="dotlive"></span>
+                <div className="meta">{t('telegram_bound_label')}<br /><b>@{telegramBinding.telegram_username || t('telegram_bound_no_username')}</b></div>
+              </div>
+              <button className="btn btn-ghost btn-sm" disabled={bindingBusy} onClick={handleBindTelegram}>
+                🔄 {bindingBusy ? t('processing') : t('rebind_telegram_btn')}
+              </button>
+              <button className="btn btn-ghost btn-sm" disabled={bindingBusy} onClick={handleUnbindTelegram}>
+                ✕ {t('unbind_telegram_btn')}
+              </button>
+            </>
           ) : (
             <button className="btn btn-ghost btn-sm" disabled={bindingBusy} onClick={handleBindTelegram}>
               🔵 {bindingBusy ? t('processing') : t('bind_telegram_btn')}

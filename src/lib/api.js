@@ -454,6 +454,12 @@ export async function fetchMyTelegramBinding() {
   return data;
 }
 
+export async function unbindTelegramAccount() {
+  const { data, error } = await supabase.rpc('unbind_telegram_account');
+  if (error) throw error;
+  return data;
+}
+
 export async function generateChannelInviteLink(productId) {
   const { data, error } = await supabase.rpc('generate_channel_invite_link', { p_product_id: productId });
   if (error) throw error;
