@@ -4,6 +4,7 @@ import { uploadImage } from '../lib/storage';
 import {
   fetchProducts, createProduct, updateProduct, deleteProduct, reorderProducts,
   fetchAllMembers, grantPermission, revokePermission, adjustMemberBalance, notifyPermissionGranted, notifyProductContentUpdated,
+  adminBindTelegramAccount,
   notifyAllMembersNewProduct, notifyTelegramNewProduct,
   createArticle, updateArticle, deleteArticle, notifyTelegramArticle, notifyArticleByEmail,
   fetchCategoriesByProduct, createCategory, deleteCategory,
@@ -1474,6 +1475,10 @@ function MembersTab() {
   const [txFor, setTxFor] = useState(null);
   const [txList, setTxList] = useState([]);
   const [txLoading, setTxLoading] = useState(false);
+  const [tgBindFor, setTgBindFor] = useState(null);
+  const [tgUserId, setTgUserId] = useState('');
+  const [tgUsername, setTgUsername] = useState('');
+  const [tgBinding, setTgBinding] = useState(false);
   const [loading, setLoading] = useState(true);
   const showToast = useToast();
   const { t } = useLang();
@@ -1539,6 +1544,23 @@ function MembersTab() {
     setTxLoading(false);
   }
 
+  async function handleAdminBindTelegram(memberId) {
+    if (!tgUserId.trim()) { showToast(t('tg_bind_id_required_toast')); return; }
+    setTgBinding(true);
+    try {
+      await adminBindTelegramAccount({ memberId, telegramUserId: tgUserId.trim(), telegramUsername: tgUsername.trim() });
+      showToast(t('tg_bind_success_toast'));
+      setTgBindFor(null);
+      setTgUserId('');
+      setTgUsername('');
+      reload();
+    } catch (err) {
+      showToast(err.message);
+    } finally {
+      setTgBinding(false);
+    }
+  }
+
   if (loading) return <div className="loading-screen">{t('loading')}</div>;
 
   return (
@@ -1560,7 +1582,34 @@ function MembersTab() {
             <button className="btn btn-ghost btn-sm" onClick={() => setGrantFor(grantFor === m.id ? null : m.id)}>{t('grant_permission_btn2')}</button>
             <button className="btn btn-ghost btn-sm" onClick={() => setBalanceFor(balanceFor === m.id ? null : m.id)}>{t('adjust_balance_btn')}</button>
             <button className="btn btn-ghost btn-sm" onClick={() => toggleTxHistory(m.id)}>{t('tx_history_btn')}</button>
+            <button
+              className="btn btn-ghost btn-sm"
+              onClick={() => {
+                setTgBindFor(tgBindFor === m.id ? null : m.id);
+                setTgUserId(m.telegram_user_id || '');
+                setTgUsername(m.telegram_username || '');
+              }}
+            >
+              🔵 {m.telegram_user_id ? t('tg_bound_badge') : t('tg_bind_btn')}
+            </button>
           </div>
+          {tgBindFor === m.id && (
+            <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--line)' }}>
+              {m.telegram_user_id && (
+                <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 8 }}>
+                  {t('tg_currently_bound_label')} <b>{m.telegram_user_id}</b>{m.telegram_username ? ` (@${m.telegram_username})` : ''}
+                </div>
+              )}
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+                <input style={{ maxWidth: 180 }} placeholder={t('tg_user_id_placeholder')} value={tgUserId} onChange={(e) => setTgUserId(e.target.value)} />
+                <input style={{ maxWidth: 160 }} placeholder={t('tg_username_placeholder')} value={tgUsername} onChange={(e) => setTgUsername(e.target.value)} />
+                <button className="btn btn-amber btn-sm" disabled={tgBinding} onClick={() => handleAdminBindTelegram(m.id)}>
+                  {tgBinding ? t('processing') : t('confirm_bind_btn')}
+                </button>
+              </div>
+              <div className="upload-hint" style={{ marginTop: 8 }}>{t('tg_bind_hint')}</div>
+            </div>
+          )}
           <div className="chip-list">
             {(m.permissions || []).length ? m.permissions.map((pm) => (
               <div className="chip valid" key={pm.id}>
