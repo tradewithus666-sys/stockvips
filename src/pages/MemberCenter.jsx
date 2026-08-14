@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { fetchMyPermissions, fetchMyPurchases, fetchArticlesByProduct, purchaseWithBalance, fetchActiveAnnouncements, toggleEmailNotify, fetchMyFavoriteArticles, generateTelegramBindToken, fetchMyTelegramBinding, generateChannelInviteLink } from '../lib/api';
+import { fetchMyPermissions, fetchMyPurchases, fetchArticlesByProduct, purchaseWithBalance, fetchActiveAnnouncements, toggleEmailNotify, fetchMyFavoriteArticles, generateTelegramBindToken, fetchMyTelegramBinding, generateChannelInviteLink, fetchProductsWithTelegramChannel } from '../lib/api';
 import { useAuth } from '../lib/AuthContext';
 import { useToast } from '../lib/ToastContext';
 import { useLang } from '../lib/LangContext';
@@ -85,6 +85,7 @@ export default function MemberCenter() {
   const [favorites, setFavorites] = useState([]);
   const [telegramBinding, setTelegramBinding] = useState(null);
   const [bindingBusy, setBindingBusy] = useState(false);
+  const [telegramProductIds, setTelegramProductIds] = useState(new Set());
   const [loading, setLoading] = useState(true);
   const [renewingId, setRenewingId] = useState(null);
   const [renewDuration, setRenewDuration] = useState('month');
@@ -95,6 +96,7 @@ export default function MemberCenter() {
     fetchActiveAnnouncements().then(setAnnouncements).catch(() => {});
     fetchMyFavoriteArticles(user.id).then(setFavorites).catch(() => {});
     fetchMyTelegramBinding().then(setTelegramBinding).catch(() => {});
+    fetchProductsWithTelegramChannel().then((ids) => setTelegramProductIds(new Set(ids))).catch(() => {});
     Promise.all([fetchMyPermissions(user.id), fetchMyPurchases(user.id)])
       .then(async ([p, pu]) => {
         setPerms(p);
@@ -184,8 +186,8 @@ export default function MemberCenter() {
             {isSub && !expired && (
               <button className="btn btn-outline-amber btn-sm" onClick={() => nav(`/feed/${pm.product_id}`)}>{t('view_all_articles_btn')}</button>
             )}
-            {isSub && !expired && (
-              <button className="btn btn-ghost btn-sm" onClick={() => handleGetInviteLink(pm.product_id)}>🔵 {t('get_invite_link_btn')}</button>
+            {isSub && !expired && telegramProductIds.has(pm.product_id) && (
+              <button className="btn btn-ghost btn-sm" onClick={() => handleGetInviteLink(pm.product_id)}>🔵 {t('enter_channel_btn')}</button>
             )}
             {!isSub && !expired && (
               <button className="btn btn-outline-amber btn-sm" onClick={() => nav(`/product/${pm.product_id}`)}>{t('view_content_btn')}</button>

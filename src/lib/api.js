@@ -460,6 +460,12 @@ export async function generateChannelInviteLink(productId) {
   return data;
 }
 
+export async function fetchProductsWithTelegramChannel() {
+  const { data, error } = await supabase.rpc('fetch_products_with_telegram_channel');
+  if (error) throw error;
+  return data || [];
+}
+
 /* ---------- 一键新增/删除 Telegram 频道 ---------- */
 export async function registerTelegramChannel({ label, botToken, sourceChatId, targetProductId, targetCategoryId }) {
   const { data, error } = await supabase.rpc('register_telegram_channel', {
