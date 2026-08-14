@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { fetchMyPermissions, fetchMyPurchases, fetchArticlesByProduct, purchaseWithBalance, fetchActiveAnnouncements, toggleEmailNotify, fetchMyFavoriteArticles } from '../lib/api';
+import { fetchMyPermissions, fetchMyPurchases, fetchArticlesByProduct, purchaseWithBalance, fetchActiveAnnouncements, toggleEmailNotify, fetchMyFavoriteArticles, generateTelegramBindToken, fetchMyTelegramBinding, generateChannelInviteLink } from '../lib/api';
 import { useAuth } from '../lib/AuthContext';
 import { useToast } from '../lib/ToastContext';
 import { useLang } from '../lib/LangContext';
@@ -47,12 +47,44 @@ export default function MemberCenter() {
     nav('/');
   }
 
+  async function handleBindTelegram() {
+    setBindingBusy(true);
+    try {
+      const token = await generateTelegramBindToken();
+      window.open(`https://t.me/Stockvip_noti_bot?start=${token}`, '_blank', 'noopener');
+      showToast(t('telegram_bind_opened_toast'));
+    } catch (err) {
+      showToast(err.message);
+    } finally {
+      setBindingBusy(false);
+    }
+  }
+
+  async function handleGetInviteLink(productId) {
+    try {
+      const result = await generateChannelInviteLink(productId);
+      if (result.status === 'ok') {
+        window.open(result.invite_link, '_blank', 'noopener');
+      } else if (result.status === 'telegram_not_bound') {
+        showToast(t('invite_need_bind_first_toast'));
+      } else if (result.status === 'channel_not_configured') {
+        showToast(t('invite_channel_not_configured_toast'));
+      } else {
+        showToast(t('invite_link_failed_toast'));
+      }
+    } catch (err) {
+      showToast(err.message);
+    }
+  }
+
 
   const [perms, setPerms] = useState([]);
   const [purchases, setPurchases] = useState([]);
   const [recentArticles, setRecentArticles] = useState({}); // productId -> articles[]
   const [announcements, setAnnouncements] = useState([]);
   const [favorites, setFavorites] = useState([]);
+  const [telegramBinding, setTelegramBinding] = useState(null);
+  const [bindingBusy, setBindingBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   const [renewingId, setRenewingId] = useState(null);
   const [renewDuration, setRenewDuration] = useState('month');
@@ -62,6 +94,7 @@ export default function MemberCenter() {
     if (!user) { nav('/login'); return; }
     fetchActiveAnnouncements().then(setAnnouncements).catch(() => {});
     fetchMyFavoriteArticles(user.id).then(setFavorites).catch(() => {});
+    fetchMyTelegramBinding().then(setTelegramBinding).catch(() => {});
     Promise.all([fetchMyPermissions(user.id), fetchMyPurchases(user.id)])
       .then(async ([p, pu]) => {
         setPerms(p);
@@ -151,6 +184,9 @@ export default function MemberCenter() {
             {isSub && !expired && (
               <button className="btn btn-outline-amber btn-sm" onClick={() => nav(`/feed/${pm.product_id}`)}>{t('view_all_articles_btn')}</button>
             )}
+            {isSub && !expired && (
+              <button className="btn btn-ghost btn-sm" onClick={() => handleGetInviteLink(pm.product_id)}>🔵 {t('get_invite_link_btn')}</button>
+            )}
             {!isSub && !expired && (
               <button className="btn btn-outline-amber btn-sm" onClick={() => nav(`/product/${pm.product_id}`)}>{t('view_content_btn')}</button>
             )}
@@ -203,6 +239,16 @@ export default function MemberCenter() {
             <span className="dotlive"></span>
             <div className="meta">{t('current_device')}<br /><b>{device}</b>{loginAt ? ` · ${loginAt}` : ''}</div>
           </div>
+          {telegramBinding?.bound ? (
+            <div className="session-box">
+              <span className="dotlive"></span>
+              <div className="meta">{t('telegram_bound_label')}<br /><b>@{telegramBinding.telegram_username || t('telegram_bound_no_username')}</b></div>
+            </div>
+          ) : (
+            <button className="btn btn-ghost btn-sm" disabled={bindingBusy} onClick={handleBindTelegram}>
+              🔵 {bindingBusy ? t('processing') : t('bind_telegram_btn')}
+            </button>
+          )}
         </div>
       </div>
 

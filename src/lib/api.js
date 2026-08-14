@@ -440,3 +440,22 @@ export async function redeemInviteLink(code) {
   if (error) throw error;
   return data;
 }
+
+/* ---------- 会员 Telegram 绑定 ---------- */
+export async function generateTelegramBindToken() {
+  const { data, error } = await supabase.rpc('generate_telegram_bind_token');
+  if (error) throw error;
+  return data;
+}
+
+export async function fetchMyTelegramBinding() {
+  const { data, error } = await supabase.rpc('fetch_my_telegram_binding');
+  if (error) throw error;
+  return data;
+}
+
+export async function generateChannelInviteLink(productId) {
+  const { data, error } = await supabase.rpc('generate_channel_invite_link', { p_product_id: productId });
+  if (error) throw error;
+  return data;
+}
