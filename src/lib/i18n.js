@@ -7,6 +7,7 @@ export const DEFAULT_LANG = 'zh-cn';
 
 export const DICT = {
   'zh-tw': {
+    pdf_preview_title: 'PDF 文件', pdf_preview_hint: '點擊查看完整內容 →',
     channel_disclaimer: `【免責聲明】
 1. 本頻道純屬技術分析及基本面分析教學，僅使用圖表或數據作案例。
 2. 所有圖表、例子均為過往已發生的走勢，不代表未來走勢。
@@ -158,6 +159,7 @@ export const DICT = {
     toast_copy_blocked: '內容禁止複製，如需轉發請聯繫客服獲取授權',
   },
   'zh-cn': {
+    pdf_preview_title: 'PDF 文件', pdf_preview_hint: '点击查看完整内容 →',
     channel_disclaimer: `【免责声明】
 1. 本频道纯属技术分析及基本面分析教学，仅使用图表或数据作案例。
 2. 所有图表、例子均为过往已发生的走势，不代表未来走势。
@@ -302,6 +304,7 @@ export const DICT = {
     toast_copy_blocked: '内容禁止复制，如需转发请联系客服获取授权',
   },
   en: {
+    pdf_preview_title: 'PDF Document', pdf_preview_hint: 'Tap to view full content →',
     channel_disclaimer: `[Disclaimer]
 1. This channel is for technical and fundamental analysis education only, using charts or data purely as examples.
 2. All charts and examples reflect past price action and do not represent future performance.

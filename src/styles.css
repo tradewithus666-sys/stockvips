@@ -407,10 +407,27 @@ button{font-family:inherit;cursor:pointer;border:none;}
 .article-flow .body-text{margin:0;}
 .article-flow .inline-img{width:100%;max-height:none;object-fit:contain;border-radius:14px;border:1px solid var(--line);background:var(--surface-2);display:block;}
 .locked .article-flow .inline-img{filter:blur(10px);}
-.article-flow .inline-pdf{width:100%;height:85vh;border:1px solid var(--line);border-radius:14px;background:#fff;display:block;}
-.locked .article-flow .inline-pdf{filter:blur(10px);pointer-events:none;}
-.pdf-wrap{position:relative;}
-.pdf-block-corner{position:absolute;top:0;right:0;width:170px;height:58px;z-index:5;background:transparent;}
+
+/* PDF 预览卡片：文章内文里只显示一张可点击的卡片，不再直接塞可捲动 iframe 进文章流，
+   避免 PDF 內部捲动跟外层文章页面捲动互相抢触控，导致滑动很难、容易误触 */
+.pdf-preview-card{display:flex;align-items:center;gap:14px;padding:16px 18px;border-radius:14px;border:1px solid var(--line);background:var(--surface-2);cursor:pointer;}
+.pdf-preview-card:hover{border-color:var(--amber);}
+.pdf-preview-icon{font-size:28px;flex-shrink:0;}
+.pdf-preview-text{flex:1;min-width:0;}
+.pdf-preview-title{font-weight:700;font-size:14px;color:var(--text);}
+.pdf-preview-hint{font-size:12px;color:var(--muted);margin-top:2px;}
+.pdf-preview-arrow{color:var(--muted);font-size:18px;flex-shrink:0;}
+.locked .pdf-preview-card{filter:blur(10px);pointer-events:none;}
+
+/* 点击预览卡片后的全萤幕 PDF 检视疊层：佔满整个画面，滑动手势只会作用在 PDF 本身，
+   不再跟外层文章页面抢捲动 */
+.pdf-fullscreen-overlay{position:fixed;inset:0;z-index:9999;background:#000;display:flex;flex-direction:column;}
+.pdf-fullscreen-header{flex-shrink:0;display:flex;justify-content:flex-end;padding:10px 14px;background:#111;}
+.pdf-fullscreen-close{width:36px;height:36px;border-radius:8px;background:rgba(255,255,255,0.12);color:#fff;font-size:18px;border:1px solid rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;}
+.pdf-fullscreen-close:hover{background:rgba(255,255,255,0.22);}
+.pdf-fullscreen-body{position:relative;flex:1;min-height:0;background:#fff;}
+.pdf-fullscreen-iframe{width:100%;height:100%;border:0;display:block;-webkit-overflow-scrolling:touch;}
+.pdf-fullscreen-block-corner{position:absolute;top:0;right:0;width:170px;height:58px;z-index:5;background:transparent;}
 .inline-video-wrap{position:relative;width:100%;padding-top:56.25%;border-radius:14px;overflow:hidden;background:#000;}
 .inline-video-wrap .inline-video{position:absolute;top:0;left:0;width:100%;height:100%;border:0;}
 .locked .inline-video-wrap{filter:blur(10px);pointer-events:none;}
@@ -437,7 +454,6 @@ button{font-family:inherit;cursor:pointer;border:none;}
   z-index:60;border:1px solid rgba(255,255,255,0.2);
 }
 .inline-video-fs-btn:hover{background:rgba(0,0,0,0.75);}
-.locked .pdf-block-corner{display:none;}
 .product-gallery{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;margin-top:18px;padding-bottom:6px;}
 .product-gallery-img{width:200px;height:140px;object-fit:cover;border-radius:14px;border:1px solid var(--line);flex-shrink:0;scroll-snap-align:start;}
 .block-item{background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px;display:flex;gap:10px;align-items:flex-start;}

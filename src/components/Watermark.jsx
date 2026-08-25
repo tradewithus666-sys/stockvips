@@ -14,7 +14,7 @@ import { useEffect, useRef, useState } from 'react';
  * 有可能连这层视觉浮水印都读不出来——这种情况下要靠另一套「零宽字元文字浮水印」
  * （用于外泄的是文字内容而非截图时）来追溯来源。
  */
-export default function Watermark({ text, active }) {
+export default function Watermark({ text, active, zIndex }) {
   const [grid, setGrid] = useState({ count: 0, cols: 2 });
   const timerRef = useRef(null);
   const SITE_URL = 'Tradewithus888.com';
@@ -36,7 +36,7 @@ export default function Watermark({ text, active }) {
   if (!active || !text) return null;
 
   return (
-    <div className="global-watermark" aria-hidden="true">
+    <div className="global-watermark" aria-hidden="true" style={zIndex ? { zIndex } : undefined}>
       <div className="global-watermark-inner" style={{ gridTemplateColumns: `repeat(${grid.cols}, 1fr)` }}>
         {Array.from({ length: grid.count }).map((_, i) => {
           const col = i % grid.cols;
