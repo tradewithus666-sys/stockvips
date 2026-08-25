@@ -81,6 +81,8 @@ button{font-family:inherit;cursor:pointer;border:none;}
 }
 .btn-ghost{background:transparent;color:var(--text);border:1.5px solid var(--line);}
 .btn-ghost:hover{border-color:var(--amber);color:var(--amber);}
+.btn-enter-channel{border-color:var(--green);color:var(--green);}
+.btn-enter-channel:hover{border-color:var(--green);color:var(--green);opacity:0.85;}
 .btn-amber{background:linear-gradient(135deg,var(--amber),var(--amber-dark));color:#14100a;}
 .btn-amber:hover{filter:brightness(1.08);transform:translateY(-1px);}
 .btn-outline-amber{background:transparent;color:var(--amber);border:1.5px solid var(--amber);}
