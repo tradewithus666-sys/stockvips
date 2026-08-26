@@ -167,7 +167,7 @@ export default function MemberCenter() {
                     onChange={async (e) => {
                       const checked = e.target.checked;
                       try {
-                        await toggleEmailNotify({ memberId: user.id, productId: pm.product_id, enabled: checked });
+                        await toggleEmailNotify({ productId: pm.product_id, enabled: checked });
                         setPerms((prev) => prev.map((x) => x.id === pm.id ? { ...x, notify_email: checked } : x));
                       } catch (err) {
                         showToast(err.message);

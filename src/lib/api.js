@@ -151,25 +151,6 @@ export async function updateHelpContent(body) {
   return data;
 }
 
-/* ---------- Discord 频道同步 ---------- */
-export async function fetchDiscordConfig() {
-  const { data, error } = await supabase.from('discord_sync_config').select('*').eq('id', 1).maybeSingle();
-  if (error) throw error;
-  return data;
-}
-
-export async function updateDiscordConfig(payload) {
-  const { data, error } = await supabase.from('discord_sync_config').update(payload).eq('id', 1).select().single();
-  if (error) throw error;
-  return data;
-}
-
-export async function triggerDiscordSync() {
-  const { data, error } = await supabase.rpc('admin_trigger_discord_sync');
-  if (error) throw error;
-  return data;
-}
-
 /* ---------- Telegram 频道同步（支援多个来源频道） ---------- */
 export async function fetchTelegramSyncConfigs() {
   const { data, error } = await supabase.from('telegram_sync_configs').select('*').order('created_at', { ascending: true });
@@ -354,13 +335,17 @@ export async function notifyArticleByEmail(productId, articleId, preview) {
   return data;
 }
 
-export async function toggleEmailNotify({ memberId, productId, enabled }) {
-  const { error } = await supabase
-    .from('permissions')
-    .update({ notify_email: enabled })
-    .eq('member_id', memberId)
-    .eq('product_id', productId);
+export async function toggleEmailNotify({ productId, enabled }) {
+  // 【本次修复】改成呼叫专门的函式（用登入者本人的 auth.uid()，不再靠前端传的 memberId），
+  // 避免直接开放 permissions 表给前端做原始 UPDATE——之前如果 RLS 没开放会员更新自己那笔资料，
+  // Supabase 会「安静地更新 0 笔、但不报错」，前端误以为成功，刷新后又打回原状。
+  const { data, error } = await supabase.rpc('toggle_my_email_notify', {
+    p_product_id: productId,
+    p_enabled: enabled,
+  });
   if (error) throw error;
+  if (data?.status === 'not_found') throw new Error('找不到对应的权限记录');
+  return data;
 }
 
 /* ---------- 文章已读标记 ---------- */
