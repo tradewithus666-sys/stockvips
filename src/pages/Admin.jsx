@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../supabaseClient';
-import { uploadImage } from '../lib/storage';
+import { uploadImage, uploadPdf } from '../lib/storage';
 import {
   fetchProducts, createProduct, updateProduct, deleteProduct, reorderProducts,
   fetchAllMembers, grantPermission, revokePermission, adjustMemberBalance, notifyPermissionGranted, notifyProductContentUpdated,
@@ -1103,8 +1103,10 @@ function ArticleForm({ products, categories = [], initial, onDone, onCancel, fix
     const file = e.target.files?.[0];
     if (!file) return;
     try {
-      const url = await uploadImage(file, 'articles');
-      updateBlock(idx, url);
+      // 【本次修改】改用 uploadPdf，存进私有 bucket，回传的是内部路径，
+      // 不是能直接打开的公开网址——之后显示时会透过专门的 Function 即时验证权限、烧上浮水印
+      const path = await uploadPdf(file, 'articles');
+      updateBlock(idx, path);
     } catch (err) {
       showToast(t('toast_upload_failed', err.message));
     }

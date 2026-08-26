@@ -59,3 +59,20 @@ export async function uploadImage(file, folder = 'uploads') {
   const { data } = supabase.storage.from('product-images').getPublicUrl(path);
   return data.publicUrl;
 }
+
+// 【本次新增】PDF 专用上传：存进私有的 private-pdfs bucket，不用 getPublicUrl
+// （这个 bucket 没有开放任何公开读取，任何人（含未登入者）直接打这个网址都读不到东西，
+// 只有我们自己的 Netlify Function 用 service_role key 才能读，确保原始檔案不会被绕过浮水印直接下载）。
+// 回传的是「storage 内部路径」，不是网址——真正显示时要透过 pdf-watermark 这个 Function 即时处理。
+export async function uploadPdf(file, folder = 'articles') {
+  const safeName = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}.pdf`;
+  const path = `${folder}/${safeName}`;
+
+  const { error } = await supabase.storage.from('private-pdfs').upload(path, file, {
+    cacheControl: '3600',
+    upsert: false,
+  });
+  if (error) throw error;
+
+  return path; // 注意：这里回传的是路径，不是可以直接打开的网址
+}

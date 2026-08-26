@@ -6,7 +6,7 @@ import { useLang } from '../lib/LangContext';
 import { formatPublishedAt, linkify, toEmbedUrl } from '../lib/format';
 import { markArticleRead, fetchFavoriteArticleIds, toggleFavoriteArticle } from '../lib/api';
 import WatermarkedVideo from '../components/WatermarkedVideo';
-import Watermark from '../components/Watermark';
+import PdfFullscreenViewer from '../components/PdfFullscreenViewer';
 
 export default function ArticleReader() {
   const { id } = useParams();
@@ -118,24 +118,12 @@ export default function ArticleReader() {
       </div>
 
       {openPdf && (
-        <div className="pdf-fullscreen-overlay">
-          <div className="pdf-fullscreen-header">
-            <button className="pdf-fullscreen-close" onClick={() => setOpenPdf(null)}>✕</button>
-          </div>
-          <div className="pdf-fullscreen-body">
-            <iframe
-              className="pdf-fullscreen-iframe"
-              src={`https://docs.google.com/viewer?url=${encodeURIComponent(openPdf.value)}&embedded=true`}
-              title="pdf-fullscreen"
-            />
-            {/* Google 內嵌檢視器右上角自己有個「在新分頁開啟」按鈕，沒辦法直接移除跨網域 iframe
-                裡的元素，疊一層透明遮擋層盖住那個位置，點了沒反應但畫面上還是看得到。 */}
-            <div className="pdf-fullscreen-block-corner" />
-          </div>
-          {/* 全萤幕检视时，原本外层那份浮水印的 z-index 比这个疊层低、会被盖住，
-              这里另外重新渲染一份、给更高的 z-index，确保浮水印保护强度不因为看 PDF 而消失 */}
-          <Watermark text={profile?.email ?? user?.email ?? ''} active={true} zIndex={10000} />
-        </div>
+        <PdfFullscreenViewer
+          articleId={id}
+          path={openPdf.value}
+          watermarkText={profile?.email ?? user?.email ?? ''}
+          onClose={() => setOpenPdf(null)}
+        />
       )}
     </div>
   );
