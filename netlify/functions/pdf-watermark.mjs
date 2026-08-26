@@ -111,7 +111,7 @@ export default async (req) => {
 
       // 【本次新增】四个角落各加一次固定宣传文字，字体稍大、角度水平，方便肉眼直接看清楚
       const margin = 14;
-      const promoSize = 14; // 【本次修改】从 9 放大到 14
+      const promoSize = 9; // 【本次修改】四角文字改回 9（中间斜纹浮水印维持 14）
       const promoWidth = helvetica.widthOfTextAtSize(PROMO_TEXT, promoSize); // 精准测量文字实际宽度，右侧对齐才不会跑掉
       const corners = [
         { x: margin, y: height - margin - promoSize },                 // 左上
