@@ -82,9 +82,19 @@ export default function PdfFullscreenViewer({ articleId, path, watermarkText, on
       <div className="pdf-fullscreen-header">
         <button className="pdf-fullscreen-close" onClick={onClose}>✕</button>
       </div>
-      <div className="pdf-fullscreen-body" ref={containerRef}>
-        {status === 'loading' && <div className="pdf-fullscreen-status">载入中…</div>}
-        {status === 'error' && <div className="pdf-fullscreen-status">载入失败，请稍后再试</div>}
+      <div className="pdf-fullscreen-body">
+        {status !== 'ready' && (
+          <div className="pdf-fullscreen-status">
+            {status === 'loading' ? '载入中…' : '载入失败，请稍后再试'}
+          </div>
+        )}
+        {/* 【本次修复】这个 div 永远保持空白、不透过 JSX 渲染任何子节点，
+            这样 React 认定它「没有子节点需要管」，之后 PDF.js 用 appendChild 手动塞进去的
+            canvas 元素就不会跟 React 自己的 DOM 更新逻辑互相打架。
+            之前把「载入中」文字跟 PDF.js 手动插入的 canvas 放在同一个 React 管理的容器里，
+            React 重新渲染时想找回它以为存在的节点、却找不到（因为被我们手动清空过），
+            导致 removeChild 报错、整个 App 崩溃变成黑屏。 */}
+        <div ref={containerRef} className="pdf-pages-container" />
       </div>
       {/* 全萤幕检视时，原本页面外层那份浮水印的 z-index 比这个疊层低、会被盖住，
           这里另外重新渲染一份、给更高的 z-index，确保浮水印保护强度不因为看 PDF 而消失。
