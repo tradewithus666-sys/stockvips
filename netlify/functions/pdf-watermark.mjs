@@ -89,7 +89,7 @@ export default async (req) => {
   try {
     const pdfDoc = await PDFDocument.load(originalBytes);
     const pages = pdfDoc.getPages();
-    const stamp = `${user.email} · ${new Date().toISOString().slice(0, 16).replace('T', ' ')}`;
+    const stamp = user.email; // 【本次修改】不再显示时间戳记，只保留会员 email
     const PROMO_TEXT = 'Tradewithus888.com (FREE TRIAL)'; // 【本次修改】改用纯英文，不用额外嵌入中文字型
     const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
 
@@ -111,7 +111,7 @@ export default async (req) => {
 
       // 【本次新增】四个角落各加一次固定宣传文字，字体稍大、角度水平，方便肉眼直接看清楚
       const margin = 14;
-      const promoSize = 9;
+      const promoSize = 14; // 【本次修改】从 9 放大到 14
       const promoWidth = helvetica.widthOfTextAtSize(PROMO_TEXT, promoSize); // 精准测量文字实际宽度，右侧对齐才不会跑掉
       const corners = [
         { x: margin, y: height - margin - promoSize },                 // 左上
