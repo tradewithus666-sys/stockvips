@@ -25,14 +25,34 @@ export default function PdfFullscreenViewer({ articleId, path, watermarkText, on
     async function load() {
       setStatus('loading');
       try {
-        const { data: sessionData } = await supabase.auth.getSession();
-        const accessToken = sessionData?.session?.access_token;
+        // 【本次修复】改用 getSession() 前先确认/刷新一次，避免因为登入令牌恰好过期
+        // 导致 Function 那边验证身份失败（401）。Supabase 通常会自动在背景刷新令牌，
+        // 但如果分页刚好从背景切回前景、或者剛好卡在快过期的那個瞬間，
+        // 手上拿到的 access_token 有可能還是舊的、已经失效的那把。
+        let { data: sessionData } = await supabase.auth.getSession();
+        let accessToken = sessionData?.session?.access_token;
+        const expiresAt = sessionData?.session?.expires_at; // unix 秒数
+        const isExpiringSoon = expiresAt && expiresAt * 1000 < Date.now() + 30_000; // 30 秒内就要过期，视为不安全
+        if (!accessToken || isExpiringSoon) {
+          const { data: refreshed } = await supabase.auth.refreshSession();
+          accessToken = refreshed?.session?.access_token ?? accessToken;
+        }
         if (!accessToken) throw new Error('尚未登入');
 
-        const res = await fetch(
+        const fetchPdf = (token) => fetch(
           `/.netlify/functions/pdf-watermark?article_id=${encodeURIComponent(articleId)}&path=${encodeURIComponent(path)}`,
-          { headers: { Authorization: `Bearer ${accessToken}` } }
+          { headers: { Authorization: `Bearer ${token}` } }
         );
+
+        let res = await fetchPdf(accessToken);
+        // 如果还是遇到 401（例如上面的预先判断没抓到、令牌恰好在这个瞬间失效），
+        // 保险起见强制刷新一次令牌、重试最后一次，而不是直接放弃
+        if (res.status === 401) {
+          const { data: refreshed } = await supabase.auth.refreshSession();
+          if (refreshed?.session?.access_token) {
+            res = await fetchPdf(refreshed.session.access_token);
+          }
+        }
         if (!res.ok) throw new Error(`载入失败（${res.status}）`);
 
         const bytes = await res.arrayBuffer();
@@ -45,21 +65,27 @@ export default function PdfFullscreenViewer({ articleId, path, watermarkText, on
         if (!container) return;
         container.innerHTML = '';
 
-        // 依裝置寬度決定縮放比例，避免手機上文字小到看不清楚
+        // 依裝置寬度決定顯示大小，但實際渲染解析度要再乘上裝置像素密度（例如 Retina 荧幕是 2 或 3 倍），
+        // 不然渲染出来的像素數只夠一般荧幕用，在高密度荧幕上被拉伸放大显示，就会看起来模糊。
         const targetWidth = Math.min(container.clientWidth || 900, 900);
+        const pixelRatio = window.devicePixelRatio || 1;
 
         for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
           if (cancelled) return;
           const page = await pdf.getPage(pageNum);
           const baseViewport = page.getViewport({ scale: 1 });
-          const scale = targetWidth / baseViewport.width;
-          const viewport = page.getViewport({ scale });
+          const displayScale = targetWidth / baseViewport.width;
+          const renderScale = displayScale * pixelRatio; // 实际渲染解析度：显示大小 × 装置像素密度
+          const viewport = page.getViewport({ scale: renderScale });
 
           const canvas = document.createElement('canvas');
           canvas.width = viewport.width;
           canvas.height = viewport.height;
+          // 画布本身用高解析度渲染，但透过 CSS 显示尺寸压回原本要的大小，
+          // 这样在高密度荧幕上，同样的显示大小塞进去的实际像素数更多，看起来才会锐利
           canvas.style.display = 'block';
-          canvas.style.width = '100%';
+          canvas.style.width = `${targetWidth}px`;
+          canvas.style.height = `${viewport.height / pixelRatio}px`;
           canvas.style.marginBottom = '10px';
           container.appendChild(canvas);
 
