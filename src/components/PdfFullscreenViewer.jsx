@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
 import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import { supabase } from '../supabaseClient';
-import Watermark from './Watermark';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
 
@@ -122,10 +121,9 @@ export default function PdfFullscreenViewer({ articleId, path, watermarkText, on
             导致 removeChild 报错、整个 App 崩溃变成黑屏。 */}
         <div ref={containerRef} className="pdf-pages-container" />
       </div>
-      {/* 全萤幕检视时，原本页面外层那份浮水印的 z-index 比这个疊层低、会被盖住，
-          这里另外重新渲染一份、给更高的 z-index，确保浮水印保护强度不因为看 PDF 而消失。
-          （PDF 內容本身也已经在伺服器端烧了专属浮水印，这层是双重保护） */}
-      <Watermark text={watermarkText} active={true} zIndex={10000} />
+      {/* 【本次修改】拿掉原本疊在这层最上面的 HTML 浮水印——PDF 檔案本身在伺服器端
+          已经烧了会员专属浮水印（密集斜纹 email + 四角固定宣传文字），
+          这层疊加的浮水印不再需要，避免看起来太密、影响阅读体验 */}
     </div>
   );
 }

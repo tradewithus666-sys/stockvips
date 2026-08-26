@@ -90,10 +90,12 @@ export default async (req) => {
     const pdfDoc = await PDFDocument.load(originalBytes);
     const pages = pdfDoc.getPages();
     const stamp = `${user.email} · ${new Date().toISOString().slice(0, 16).replace('T', ' ')}`;
+    const PROMO_TEXT = 'Tradewithus888.com免費獲得試用'; // 【本次新增】四角固定宣传文字
 
     for (const page of pages) {
       const { width, height } = page.getSize();
-      // 斜向密集重複盖印，即使只截图局部内容，也有很高机率带到至少一份完整的浮水印文字
+
+      // 原本的密集斜纹会员追蹤浮水印，维持不变
       for (let y = -20; y < height + 40; y += 85) {
         for (let x = -60; x < width + 60; x += 210) {
           page.drawText(stamp, {
@@ -104,6 +106,24 @@ export default async (req) => {
             opacity: 0.14,
           });
         }
+      }
+
+      // 【本次新增】四个角落各加一次固定宣传文字，字体稍大、角度水平，方便肉眼直接看清楚
+      const margin = 14;
+      const promoSize = 9;
+      const corners = [
+        { x: margin, y: height - margin - promoSize },       // 左上
+        { x: width - margin - PROMO_TEXT.length * promoSize * 0.52, y: height - margin - promoSize }, // 右上（粗略估算文字寬度，避免超出邊界）
+        { x: margin, y: margin },                              // 左下
+        { x: width - margin - PROMO_TEXT.length * promoSize * 0.52, y: margin }, // 右下
+      ];
+      for (const { x, y } of corners) {
+        page.drawText(PROMO_TEXT, {
+          x, y,
+          size: promoSize,
+          color: rgb(0.85, 0.1, 0.5),
+          opacity: 0.35,
+        });
       }
     }
     watermarked = await pdfDoc.save();
