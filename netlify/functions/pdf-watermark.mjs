@@ -11,7 +11,7 @@
 // 因为每次都是即时产生、而且回应设成 no-store，不会有任何一份「乾净、共用」的檔案存在，
 // 就算这次的回应被存下来外流，浮水印本身就直接指出是哪个帐号流出的。
 
-import { PDFDocument, rgb, degrees } from 'pdf-lib';
+import { PDFDocument, StandardFonts, rgb, degrees } from 'pdf-lib';
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -90,7 +90,8 @@ export default async (req) => {
     const pdfDoc = await PDFDocument.load(originalBytes);
     const pages = pdfDoc.getPages();
     const stamp = `${user.email} · ${new Date().toISOString().slice(0, 16).replace('T', ' ')}`;
-    const PROMO_TEXT = 'Tradewithus888.com免費獲得試用'; // 【本次新增】四角固定宣传文字
+    const PROMO_TEXT = 'Tradewithus888.com (FREE TRIAL)'; // 【本次修改】改用纯英文，不用额外嵌入中文字型
+    const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
 
     for (const page of pages) {
       const { width, height } = page.getSize();
@@ -111,16 +112,18 @@ export default async (req) => {
       // 【本次新增】四个角落各加一次固定宣传文字，字体稍大、角度水平，方便肉眼直接看清楚
       const margin = 14;
       const promoSize = 9;
+      const promoWidth = helvetica.widthOfTextAtSize(PROMO_TEXT, promoSize); // 精准测量文字实际宽度，右侧对齐才不会跑掉
       const corners = [
-        { x: margin, y: height - margin - promoSize },       // 左上
-        { x: width - margin - PROMO_TEXT.length * promoSize * 0.52, y: height - margin - promoSize }, // 右上（粗略估算文字寬度，避免超出邊界）
-        { x: margin, y: margin },                              // 左下
-        { x: width - margin - PROMO_TEXT.length * promoSize * 0.52, y: margin }, // 右下
+        { x: margin, y: height - margin - promoSize },                 // 左上
+        { x: width - margin - promoWidth, y: height - margin - promoSize }, // 右上
+        { x: margin, y: margin },                                       // 左下
+        { x: width - margin - promoWidth, y: margin },                  // 右下
       ];
       for (const { x, y } of corners) {
         page.drawText(PROMO_TEXT, {
           x, y,
           size: promoSize,
+          font: helvetica,
           color: rgb(0.85, 0.1, 0.5),
           opacity: 0.35,
         });
