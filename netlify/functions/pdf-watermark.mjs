@@ -101,7 +101,7 @@ export default async (req) => {
         for (let x = -60; x < width + 60; x += 210) {
           page.drawText(stamp, {
             x, y,
-            size: 10,
+            size: 14,
             rotate: degrees(-28),
             color: rgb(0.85, 0.1, 0.5),
             opacity: 0.14,
