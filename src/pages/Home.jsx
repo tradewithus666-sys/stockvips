@@ -70,7 +70,7 @@ export default function Home() {
         {search && <button className="site-search-clear" onClick={() => setSearch('')}>✕</button>}
       </div>
 
-      {['course', 'subscription', 'shared'].map((type) => {
+      {['subscription', 'course', 'shared'].map((type) => {
         const list = products.filter((p) => p.type === type && (
           !search.trim() ||
           p.name?.toLowerCase().includes(search.trim().toLowerCase()) ||
