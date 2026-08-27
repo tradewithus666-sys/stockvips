@@ -67,6 +67,9 @@ export default function Login() {
               <span className="icon">🔒</span>
               <input value={password} onChange={(e) => setPassword(e.target.value)} type="password" required placeholder="••••••••" />
             </div>
+            <div style={{ textAlign: 'right', marginTop: 6 }}>
+              <a onClick={() => nav('/forgot-password')} style={{ fontSize: 12.5, cursor: 'pointer' }}>{t('forgot_password_link')}</a>
+            </div>
           </div>
           {error && <div className="err-text">{error}</div>}
           <button className="btn btn-amber btn-block" style={{ marginTop: 8 }} disabled={busy} type="submit">
