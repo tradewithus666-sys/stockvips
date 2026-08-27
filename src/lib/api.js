@@ -232,6 +232,23 @@ export async function grantPermission({ memberId, productId, days, exactDate }) 
     .select()
     .single();
   if (error) throw error;
+
+  // 【本次新增】後台手動授予會籍，換算成「等同銷量」累加進商品的 sold 欄位，
+  // 例如給 3 個月（約 90 天）就算銷量 +3，給 1 年（約 365 天）就算銷量 +12。
+  // 不管是用「天數」還是「確切到期日」授予的，都統一換算成「距今天數」再除以 30、四捨五入；
+  // 沒有到期日（永久）或天數是 0 這種情況，不計入銷量（沒有明確的「等同月數」可以換算）。
+  let equivalentDays = null;
+  if (days) {
+    equivalentDays = Number(days);
+  } else if (exactDate) {
+    const diffMs = new Date(exactDate).getTime() - Date.now();
+    equivalentDays = diffMs > 0 ? diffMs / 86400000 : 0;
+  }
+  if (equivalentDays && equivalentDays > 0) {
+    const soldIncrement = Math.max(1, Math.round(equivalentDays / 30));
+    await supabase.rpc('increment_product_sold', { p_product_id: productId, p_amount: soldIncrement }).catch(() => {});
+  }
+
   return data;
 }
 
