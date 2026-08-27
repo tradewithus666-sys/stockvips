@@ -158,14 +158,18 @@ function StatsTab() {
       fetchStatsProductSubscribers(),
       fetchStatsExpiringSoon(),
     ]).then(([ds, cm, d, eng, sub, exp]) => {
-      // 日期欄位統一轉成 MM-DD 顯示，圖表 X 軸比較不擁擠
-      const fmt = (rows) => rows.map((r) => ({ ...r, day: r.day?.slice(5) }));
-      setDailySignups(fmt(ds));
-      setCumulative(fmt(cm));
-      setDau(fmt(d));
-      setEngagement(eng);
-      setSubscribers(sub);
-      setExpiring(exp);
+      // 日期欄位統一轉成 MM-DD 顯示，圖表 X 軸比較不擁擠；
+      // 【本次修复】Postgres 的 bigint 欄位透過 RPC 回傳時會被序列化成字串（避免 JS number
+      // 精度不夠表示超大整數），Recharts 遇到字串型態的 dataKey 常常渲染不出長條/線條高度，
+      // 這裡統一強制轉成 Number
+      const fmtCount = (rows) => rows.map((r) => ({ ...r, day: r.day?.slice(5), count: Number(r.count) }));
+      const fmtTotal = (rows) => rows.map((r) => ({ ...r, day: r.day?.slice(5), total: Number(r.total) }));
+      setDailySignups(fmtCount(ds));
+      setCumulative(fmtTotal(cm));
+      setDau(fmtCount(d));
+      setEngagement(eng.map((r) => ({ ...r, reads: Number(r.reads), favorites: Number(r.favorites) })));
+      setSubscribers(sub.map((r) => ({ ...r, subscriber_count: Number(r.subscriber_count) })));
+      setExpiring(exp.map((r) => ({ ...r, count: Number(r.count) })));
       setLoading(false);
     }).catch(() => setLoading(false));
   }, []);
