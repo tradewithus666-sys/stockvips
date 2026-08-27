@@ -485,3 +485,40 @@ export async function deregisterTelegramChannel(configId) {
   if (error) throw error;
   return data;
 }
+
+/* ---------- 後台數據圖表 ---------- */
+export async function fetchStatsDailySignups(days = 30) {
+  const { data, error } = await supabase.rpc('admin_stats_daily_signups', { p_days: days });
+  if (error) throw error;
+  return data;
+}
+
+export async function fetchStatsCumulativeMembers(days = 30) {
+  const { data, error } = await supabase.rpc('admin_stats_cumulative_members', { p_days: days });
+  if (error) throw error;
+  return data;
+}
+
+export async function fetchStatsDau(days = 30) {
+  const { data, error } = await supabase.rpc('admin_stats_dau', { p_days: days });
+  if (error) throw error;
+  return data;
+}
+
+export async function fetchStatsArticleEngagement(limit = 20) {
+  const { data, error } = await supabase.rpc('admin_stats_article_engagement', { p_limit: limit });
+  if (error) throw error;
+  return data;
+}
+
+export async function fetchStatsProductSubscribers() {
+  const { data, error } = await supabase.rpc('admin_stats_product_subscribers');
+  if (error) throw error;
+  return data;
+}
+
+export async function fetchStatsExpiringSoon() {
+  const { data, error } = await supabase.rpc('admin_stats_expiring_soon');
+  if (error) throw error;
+  return data;
+}

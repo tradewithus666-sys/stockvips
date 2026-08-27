@@ -13,11 +13,17 @@ import {
   fetchTelegramSyncConfigs, createTelegramSyncConfig, updateTelegramSyncConfig, deleteTelegramSyncConfig, triggerTelegramSync,
   registerTelegramChannel, deregisterTelegramChannel,
   fetchInviteLinks, createInviteLink, toggleInviteLink,
+  fetchStatsDailySignups, fetchStatsCumulativeMembers, fetchStatsDau,
+  fetchStatsArticleEngagement, fetchStatsProductSubscribers, fetchStatsExpiringSoon,
 } from '../lib/api';
 import { useToast } from '../lib/ToastContext';
 import { useLang } from '../lib/LangContext';
 import { formatPublishedAt, usdtToHkd, USDT_TO_HKD_RATE, toEmbedUrl } from '../lib/format';
 import RichTextEditor from '../components/RichTextEditor';
+import {
+  LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+} from 'recharts';
 
 const EMPTY_PRODUCT = { name: '', type: 'course', image: '', price: 0, price_quarter: '', price_year: '', description: '', body: '', base_sold: 0, status: 'active' };
 
@@ -38,6 +44,7 @@ export default function Admin() {
           ['help', t('admin_tab_help')],
           ['telegramsync', t('admin_tab_telegramsync')],
           ['invites', '邀請連結'],
+          ['stats', '數據圖表'],
         ].map(([key, label]) => (
           <button
             key={key}
@@ -55,6 +62,7 @@ export default function Admin() {
       {tab === 'help' && <HelpTab />}
       {tab === 'telegramsync' && <TelegramSyncTab />}
       {tab === 'invites' && <InviteLinksTab />}
+      {tab === 'stats' && <StatsTab />}
     </div>
   );
 }
@@ -116,6 +124,131 @@ function InviteLinksTab() {
         </tbody>
       </table>
       {!links.length && <div className="empty">尚未建立任何邀请连结</div>}
+    </div>
+  );
+}
+
+/* ---------------- 數據圖表 ---------------- */
+const CHART_COLORS = ['#F2A93B', '#34C795', '#8B7CF6', '#E2574C', '#3BA6F2', '#F2739B'];
+
+function StatsCard({ title, children }) {
+  return (
+    <div className="form-panel" style={{ marginBottom: 20 }}>
+      <div style={{ fontWeight: 700, marginBottom: 14 }}>{title}</div>
+      {children}
+    </div>
+  );
+}
+
+function StatsTab() {
+  const [dailySignups, setDailySignups] = useState([]);
+  const [cumulative, setCumulative] = useState([]);
+  const [dau, setDau] = useState([]);
+  const [engagement, setEngagement] = useState([]);
+  const [subscribers, setSubscribers] = useState([]);
+  const [expiring, setExpiring] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    Promise.all([
+      fetchStatsDailySignups(30),
+      fetchStatsCumulativeMembers(30),
+      fetchStatsDau(30),
+      fetchStatsArticleEngagement(15),
+      fetchStatsProductSubscribers(),
+      fetchStatsExpiringSoon(),
+    ]).then(([ds, cm, d, eng, sub, exp]) => {
+      // 日期欄位統一轉成 MM-DD 顯示，圖表 X 軸比較不擁擠
+      const fmt = (rows) => rows.map((r) => ({ ...r, day: r.day?.slice(5) }));
+      setDailySignups(fmt(ds));
+      setCumulative(fmt(cm));
+      setDau(fmt(d));
+      setEngagement(eng);
+      setSubscribers(sub);
+      setExpiring(exp);
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  }, []);
+
+  if (loading) return <div className="loading-screen">载入中…</div>;
+
+  return (
+    <div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+        <StatsCard title="每日新增會員數（近 30 天）">
+          <ResponsiveContainer width="100%" height={260}>
+            <LineChart data={dailySignups}>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" />
+              <XAxis dataKey="day" tick={{ fontSize: 11 }} />
+              <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
+              <Tooltip />
+              <Line type="monotone" dataKey="count" name="新增會員" stroke="#F2A93B" strokeWidth={2} dot={false} />
+            </LineChart>
+          </ResponsiveContainer>
+        </StatsCard>
+
+        <StatsCard title="累計會員總數趨勢（近 30 天）">
+          <ResponsiveContainer width="100%" height={260}>
+            <LineChart data={cumulative}>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" />
+              <XAxis dataKey="day" tick={{ fontSize: 11 }} />
+              <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
+              <Tooltip />
+              <Line type="monotone" dataKey="total" name="累計會員" stroke="#34C795" strokeWidth={2} dot={false} />
+            </LineChart>
+          </ResponsiveContainer>
+        </StatsCard>
+
+        <StatsCard title="每日活躍會員數 DAU（近 30 天）">
+          <ResponsiveContainer width="100%" height={260}>
+            <BarChart data={dau}>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" />
+              <XAxis dataKey="day" tick={{ fontSize: 11 }} />
+              <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
+              <Tooltip />
+              <Bar dataKey="count" name="活躍會員" fill="#8B7CF6" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </StatsCard>
+
+        <StatsCard title="會員到期時間分佈">
+          <ResponsiveContainer width="100%" height={260}>
+            <PieChart>
+              <Pie data={expiring} dataKey="count" nameKey="bucket" cx="50%" cy="50%" outerRadius={90} label>
+                {expiring.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+              </Pie>
+              <Tooltip />
+              <Legend />
+            </PieChart>
+          </ResponsiveContainer>
+        </StatsCard>
+
+        <StatsCard title="各商品訂閱人數排行">
+          <ResponsiveContainer width="100%" height={Math.max(260, subscribers.length * 34)}>
+            <BarChart data={subscribers} layout="vertical" margin={{ left: 20 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" />
+              <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11 }} />
+              <YAxis type="category" dataKey="product_name" width={140} tick={{ fontSize: 11 }} />
+              <Tooltip />
+              <Bar dataKey="subscriber_count" name="訂閱人數" fill="#3BA6F2" radius={[0, 4, 4, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </StatsCard>
+
+        <StatsCard title="文章觀看 / 收藏次數排行（前 15 名）">
+          <ResponsiveContainer width="100%" height={Math.max(260, engagement.length * 30)}>
+            <BarChart data={engagement} layout="vertical" margin={{ left: 20 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" />
+              <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11 }} />
+              <YAxis type="category" dataKey="title" width={140} tick={{ fontSize: 10 }} />
+              <Tooltip />
+              <Legend />
+              <Bar dataKey="reads" name="觀看次數" fill="#F2A93B" />
+              <Bar dataKey="favorites" name="收藏次數" fill="#E2574C" />
+            </BarChart>
+          </ResponsiveContainer>
+        </StatsCard>
+      </div>
     </div>
   );
 }
