@@ -246,7 +246,11 @@ export async function grantPermission({ memberId, productId, days, exactDate }) 
   }
   if (equivalentDays && equivalentDays > 0) {
     const soldIncrement = Math.max(1, Math.round(equivalentDays / 30));
-    await supabase.rpc('increment_product_sold', { p_product_id: productId, p_amount: soldIncrement }).catch(() => {});
+    try {
+      await supabase.rpc('increment_product_sold', { p_product_id: productId, p_amount: soldIncrement });
+    } catch {
+      // 銷量計數失敗不該讓整個授予會籍動作失敗，靜默忽略即可
+    }
   }
 
   return data;
