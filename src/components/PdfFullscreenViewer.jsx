@@ -57,39 +57,55 @@ export default function PdfFullscreenViewer({ articleId, path, watermarkText, on
         const bytes = await res.arrayBuffer();
         if (cancelled) return;
 
-        const pdf = await pdfjsLib.getDocument({ data: bytes }).promise;
-        if (cancelled) return;
-
+        // 【本次修复】某些 iOS 版本的 WebKit（Safari 跟 iOS 上所有其他瀏覽器底層都是同一套引擎，
+        // 换瀏覽器也没用）处理 PDF.js 用的 Web Worker 时会出问题——可能在解析文件那一步就失败，
+        // 也可能是文件解析成功、但某一頁實際 render 時才失败（因為逐頁渲染也要跟 Worker 溝通）。
+        // 這裡把「載入文件 + 畫出所有頁面」包成一個函式，用 Worker 模式整段跑一次，
+        // 任何一步失败就整個放棄、改用「不用 Worker」模式（在主執行緒直接跑，效能較差但
+        // 相容性好很多）重新跑一次，而不是直接放弃显示「载入失败」。
         const container = containerRef.current;
         if (!container) return;
-        container.innerHTML = '';
 
-        // 依裝置寬度決定顯示大小，但實際渲染解析度要再乘上裝置像素密度（例如 Retina 荧幕是 2 或 3 倍），
-        // 不然渲染出来的像素數只夠一般荧幕用，在高密度荧幕上被拉伸放大显示，就会看起来模糊。
-        const targetWidth = Math.min(container.clientWidth || 900, 900);
-        const pixelRatio = window.devicePixelRatio || 1;
-
-        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+        async function renderAllPages(useWorker) {
+          const pdf = await pdfjsLib.getDocument({ data: bytes, disableWorker: !useWorker }).promise;
           if (cancelled) return;
-          const page = await pdf.getPage(pageNum);
-          const baseViewport = page.getViewport({ scale: 1 });
-          const displayScale = targetWidth / baseViewport.width;
-          const renderScale = displayScale * pixelRatio; // 实际渲染解析度：显示大小 × 装置像素密度
-          const viewport = page.getViewport({ scale: renderScale });
 
-          const canvas = document.createElement('canvas');
-          canvas.width = viewport.width;
-          canvas.height = viewport.height;
-          // 画布本身用高解析度渲染，但透过 CSS 显示尺寸压回原本要的大小，
-          // 这样在高密度荧幕上，同样的显示大小塞进去的实际像素数更多，看起来才会锐利
-          canvas.style.display = 'block';
-          canvas.style.width = `${targetWidth}px`;
-          canvas.style.height = `${viewport.height / pixelRatio}px`;
-          canvas.style.marginBottom = '10px';
-          container.appendChild(canvas);
+          container.innerHTML = '';
 
-          const ctx = canvas.getContext('2d');
-          await page.render({ canvasContext: ctx, viewport }).promise;
+          // 依裝置寬度決定顯示大小，但實際渲染解析度要再乘上裝置像素密度（例如 Retina 荧幕是 2 或 3 倍），
+          // 不然渲染出来的像素數只夠一般荧幕用，在高密度荧幕上被拉伸放大显示，就会看起来模糊。
+          const targetWidth = Math.min(container.clientWidth || 900, 900);
+          const pixelRatio = window.devicePixelRatio || 1;
+
+          for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+            if (cancelled) return;
+            const page = await pdf.getPage(pageNum);
+            const baseViewport = page.getViewport({ scale: 1 });
+            const displayScale = targetWidth / baseViewport.width;
+            const renderScale = displayScale * pixelRatio; // 实际渲染解析度：显示大小 × 装置像素密度
+            const viewport = page.getViewport({ scale: renderScale });
+
+            const canvas = document.createElement('canvas');
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+            // 画布本身用高解析度渲染，但透过 CSS 显示尺寸压回原本要的大小，
+            // 这样在高密度荧幕上，同样的显示大小塞进去的实际像素数更多，看起来才会锐利
+            canvas.style.display = 'block';
+            canvas.style.width = `${targetWidth}px`;
+            canvas.style.height = `${viewport.height / pixelRatio}px`;
+            canvas.style.marginBottom = '10px';
+            container.appendChild(canvas);
+
+            const ctx = canvas.getContext('2d');
+            await page.render({ canvasContext: ctx, viewport }).promise;
+          }
+        }
+
+        try {
+          await renderAllPages(true); // 先试正常的 Worker 模式
+        } catch (workerErr) {
+          if (cancelled) return;
+          await renderAllPages(false); // Worker 模式失败，改用不需要 Worker 的相容模式重试
         }
 
         if (!cancelled) setStatus('ready');
