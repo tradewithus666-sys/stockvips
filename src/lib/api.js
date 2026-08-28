@@ -543,3 +543,9 @@ export async function fetchStatsExpiringSoon() {
   if (error) throw error;
   return data;
 }
+
+export async function fetchLoginLogs(memberId, limit = 30) {
+  const { data, error } = await supabase.rpc('admin_fetch_login_logs', { p_member_id: memberId, p_limit: limit });
+  if (error) throw error;
+  return data;
+}

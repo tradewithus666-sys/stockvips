@@ -42,6 +42,12 @@ export function AuthProvider({ children }) {
     if (!error) {
       myTokenRef.current = token;
       sessionStorage.setItem(SESSION_TOKEN_KEY, token);
+      // 【本次新增】記錄這次登入用的裝置/瀏覽器資訊，方便後台排查會員反映的問題
+      // 是不是特定裝置才會發生。記錄失敗不該影響登入本身，靜默處理即可。
+      supabase.rpc('log_login', { p_user_agent: navigator.userAgent }).then(
+        () => {},
+        () => {}
+      );
     }
   }, []);
 

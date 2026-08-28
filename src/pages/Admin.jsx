@@ -15,6 +15,7 @@ import {
   fetchInviteLinks, createInviteLink, toggleInviteLink,
   fetchStatsDailySignups, fetchStatsCumulativeMembers, fetchStatsDau,
   fetchStatsArticleEngagement, fetchStatsProductSubscribers, fetchStatsExpiringSoon,
+  fetchLoginLogs,
 } from '../lib/api';
 import { useToast } from '../lib/ToastContext';
 import { useLang } from '../lib/LangContext';
@@ -1503,6 +1504,9 @@ function MembersTab() {
   const [txFor, setTxFor] = useState(null);
   const [txList, setTxList] = useState([]);
   const [txLoading, setTxLoading] = useState(false);
+  const [loginLogFor, setLoginLogFor] = useState(null);
+  const [loginLogList, setLoginLogList] = useState([]);
+  const [loginLogLoading, setLoginLogLoading] = useState(false);
   const [tgBindFor, setTgBindFor] = useState(null);
   const [tgUserId, setTgUserId] = useState('');
   const [tgUsername, setTgUsername] = useState('');
@@ -1572,6 +1576,20 @@ function MembersTab() {
     setTxLoading(false);
   }
 
+  async function toggleLoginLogs(memberId) {
+    if (loginLogFor === memberId) { setLoginLogFor(null); return; }
+    setLoginLogFor(memberId);
+    setLoginLogLoading(true);
+    try {
+      const data = await fetchLoginLogs(memberId, 30);
+      setLoginLogList(data || []);
+    } catch (err) {
+      showToast(err.message);
+      setLoginLogList([]);
+    }
+    setLoginLogLoading(false);
+  }
+
   async function handleAdminBindTelegram(memberId) {
     if (!tgUserId.trim()) { showToast(t('tg_bind_id_required_toast')); return; }
     setTgBinding(true);
@@ -1610,6 +1628,7 @@ function MembersTab() {
             <button className="btn btn-ghost btn-sm" onClick={() => setGrantFor(grantFor === m.id ? null : m.id)}>{t('grant_permission_btn2')}</button>
             <button className="btn btn-ghost btn-sm" onClick={() => setBalanceFor(balanceFor === m.id ? null : m.id)}>{t('adjust_balance_btn')}</button>
             <button className="btn btn-ghost btn-sm" onClick={() => toggleTxHistory(m.id)}>{t('tx_history_btn')}</button>
+            <button className="btn btn-ghost btn-sm" onClick={() => toggleLoginLogs(m.id)}>📱 登入裝置紀錄</button>
             <button
               className="btn btn-ghost btn-sm"
               onClick={() => {
@@ -1664,6 +1683,18 @@ function MembersTab() {
                   <span className="pill">{tx.status}</span>
                 </div>
               )) : <div style={{ fontSize: 12, color: 'var(--muted)' }}>{t('no_tx_yet')}</div>}
+            </div>
+          )}
+          {loginLogFor === m.id && (
+            <div style={{ marginTop: 14, borderTop: '1px solid var(--line)', paddingTop: 12 }}>
+              {loginLogLoading ? (
+                <div style={{ fontSize: 12, color: 'var(--muted)' }}>{t('loading')}</div>
+              ) : loginLogList.length ? loginLogList.map((log) => (
+                <div key={log.id} style={{ fontSize: 12, padding: '6px 0', borderBottom: '1px solid var(--line)' }}>
+                  <div style={{ color: 'var(--muted)' }}>{new Date(log.created_at).toLocaleString()}</div>
+                  <div style={{ wordBreak: 'break-all', marginTop: 2 }}>{log.user_agent || '（無裝置資訊）'}</div>
+                </div>
+              )) : <div style={{ fontSize: 12, color: 'var(--muted)' }}>尚無登入紀錄</div>}
             </div>
           )}
         </div>
