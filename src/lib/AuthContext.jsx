@@ -42,12 +42,17 @@ export function AuthProvider({ children }) {
     if (!error) {
       myTokenRef.current = token;
       sessionStorage.setItem(SESSION_TOKEN_KEY, token);
-      // 【本次新增】記錄這次登入用的裝置/瀏覽器資訊，方便後台排查會員反映的問題
-      // 是不是特定裝置才會發生。記錄失敗不該影響登入本身，靜默處理即可。
-      supabase.rpc('log_login', { p_user_agent: navigator.userAgent }).then(
-        () => {},
-        () => {}
-      );
+      // 記錄這次登入用的裝置/瀏覽器資訊，方便後台排查會員反映的問題是不是特定裝置才會發生。
+      // 【本次修复】之前這裡沒有 await，claimSession 函式本身會在這個網路請求還沒真正送達
+      // 伺服器之前就先跑完、回到呼叫端（Login.jsx 緊接著會 nav() 導頁），
+      // 瀏覽器在頁面跳轉的瞬間有可能直接中斷這個尚未完成的請求，導致登入紀錄「很多時候」
+      // 根本沒有真的寫入。改成 await，確保這筆記錄真的送達才繼續，記錄失敗本身仍然
+      // 不该影响登入，用 try/catch 靜默處理，不阻擋登入流程。
+      try {
+        await supabase.rpc('log_login', { p_user_agent: navigator.userAgent });
+      } catch {
+        // 記錄失敗不該讓登入失敗，靜默忽略即可
+      }
     }
   }, []);
 
