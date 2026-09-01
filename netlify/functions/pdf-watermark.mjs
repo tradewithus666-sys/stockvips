@@ -96,15 +96,16 @@ export default async (req) => {
     for (const page of pages) {
       const { width, height } = page.getSize();
 
-      // 原本的密集斜纹会员追蹤浮水印，维持不变
-      for (let y = -20; y < height + 40; y += 85) {
-        for (let x = -60; x < width + 60; x += 210) {
+      // 中間密集斜紋會員追蹤浮水印——【本次修改】字體加大、透明度加深，
+      // 方便肉眼更容易發現、也讓浮水印在轉發過程中更不容易被壓縮/降畫質後糊到看不見
+      for (let y = -20; y < height + 40; y += 95) {
+        for (let x = -60; x < width + 60; x += 230) {
           page.drawText(stamp, {
             x, y,
-            size: 14,
+            size: 18,
             rotate: degrees(-28),
             color: rgb(0.85, 0.1, 0.5),
-            opacity: 0.14,
+            opacity: 0.20,
           });
         }
       }
