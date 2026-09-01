@@ -16,6 +16,8 @@ import {
   fetchStatsDailySignups, fetchStatsCumulativeMembers, fetchStatsDau,
   fetchStatsArticleEngagement, fetchStatsProductSubscribers, fetchStatsExpiringSoon,
   fetchLoginLogs,
+  adminSetGoogleDriveEmail,
+  fetchGdriveActiveList, fetchGdriveRemovalList, markGdriveExported,
 } from '../lib/api';
 import { useToast } from '../lib/ToastContext';
 import { useLang } from '../lib/LangContext';
@@ -46,6 +48,7 @@ export default function Admin() {
           ['telegramsync', t('admin_tab_telegramsync')],
           ['invites', '邀請連結'],
           ['stats', '數據圖表'],
+          ['gdrive', 'Google Drive 名單'],
         ].map(([key, label]) => (
           <button
             key={key}
@@ -64,6 +67,7 @@ export default function Admin() {
       {tab === 'telegramsync' && <TelegramSyncTab />}
       {tab === 'invites' && <InviteLinksTab />}
       {tab === 'stats' && <StatsTab />}
+      {tab === 'gdrive' && <GdriveListTab />}
     </div>
   );
 }
@@ -254,6 +258,122 @@ function StatsTab() {
           </ResponsiveContainer>
         </StatsCard>
       </div>
+    </div>
+  );
+}
+
+/* ---------------- Google Drive 名單 ---------------- */
+function GdriveListTab() {
+  const [activeList, setActiveList] = useState([]);
+  const [removalList, setRemovalList] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [marking, setMarking] = useState(false);
+  const showToast = useToast();
+
+  async function reload() {
+    setLoading(true);
+    try {
+      const [active, removal] = await Promise.all([fetchGdriveActiveList(), fetchGdriveRemovalList()]);
+      setActiveList(active || []);
+      setRemovalList(removal || []);
+    } catch (err) {
+      showToast(err.message);
+    }
+    setLoading(false);
+  }
+  useEffect(() => { reload(); }, []);
+
+  function copyEmails(list) {
+    const text = list.map((r) => r.google_drive_email).join('\n');
+    navigator.clipboard.writeText(text);
+    showToast(`已複製 ${list.length} 個 email`);
+  }
+
+  function downloadEmails(list, filename) {
+    const text = list.map((r) => r.google_drive_email).join('\n');
+    const blob = new Blob([text], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function handleMarkExported() {
+    setMarking(true);
+    try {
+      await markGdriveExported();
+      showToast('已標記本次匯出完成，下次「該移除名單」會以這次為基準');
+      await reload();
+    } catch (err) {
+      showToast(err.message);
+    } finally {
+      setMarking(false);
+    }
+  }
+
+  if (loading) return <div className="loading-screen">载入中…</div>;
+
+  return (
+    <div>
+      <p style={{ color: 'var(--muted)', fontSize: 12.5, marginBottom: 16 }}>
+        這裡列出目前有效、且已填寫 Google Drive Email 的會員名單，供你手動複製貼上到 Google Group
+        的成員管理頁面。建議每次處理完，都點下方「標記本次已匯出」，這樣下次「該移除名單」
+        才會準確算出「上次匯出之後才到期」的人。
+      </p>
+
+      <div className="form-panel" style={{ marginBottom: 20 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <div style={{ fontWeight: 700 }}>✅ 目前有效名單（{activeList.length} 人）</div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className="btn btn-ghost btn-sm" onClick={() => copyEmails(activeList)}>複製全部</button>
+            <button className="btn btn-ghost btn-sm" onClick={() => downloadEmails(activeList, 'gdrive_active_list.txt')}>下載 .txt</button>
+          </div>
+        </div>
+        <table className="admin-table">
+          <thead><tr><th>會員信箱</th><th>Google Drive Email</th><th>頻道</th><th>到期日</th></tr></thead>
+          <tbody>
+            {activeList.map((r, i) => (
+              <tr key={i}>
+                <td>{r.email}</td>
+                <td>{r.google_drive_email}</td>
+                <td>{r.product_name}</td>
+                <td>{r.expires_at || '永久有效'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {!activeList.length && <div className="empty">目前沒有符合條件的有效會員</div>}
+      </div>
+
+      <div className="form-panel" style={{ marginBottom: 20 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <div style={{ fontWeight: 700 }}>🚫 該移除名單（{removalList.length} 人，上次匯出後才到期）</div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className="btn btn-ghost btn-sm" onClick={() => copyEmails(removalList)}>複製全部</button>
+            <button className="btn btn-ghost btn-sm" onClick={() => downloadEmails(removalList, 'gdrive_removal_list.txt')}>下載 .txt</button>
+          </div>
+        </div>
+        <table className="admin-table">
+          <thead><tr><th>會員信箱</th><th>Google Drive Email</th><th>頻道</th><th>過期日</th></tr></thead>
+          <tbody>
+            {removalList.map((r, i) => (
+              <tr key={i}>
+                <td>{r.email}</td>
+                <td>{r.google_drive_email}</td>
+                <td>{r.product_name}</td>
+                <td>{r.expires_at}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {!removalList.length && <div className="empty">目前沒有需要移除的人</div>}
+      </div>
+
+      <button className="btn btn-amber" disabled={marking} onClick={handleMarkExported}>
+        {marking ? '處理中…' : '✓ 標記本次已匯出'}
+      </button>
     </div>
   );
 }
@@ -1507,6 +1627,9 @@ function MembersTab() {
   const [loginLogFor, setLoginLogFor] = useState(null);
   const [loginLogList, setLoginLogList] = useState([]);
   const [loginLogLoading, setLoginLogLoading] = useState(false);
+  const [gdriveFor, setGdriveFor] = useState(null);
+  const [gdriveInput, setGdriveInput] = useState('');
+  const [gdriveBusy, setGdriveBusy] = useState(false);
   const [tgBindFor, setTgBindFor] = useState(null);
   const [tgUserId, setTgUserId] = useState('');
   const [tgUsername, setTgUsername] = useState('');
@@ -1590,6 +1713,21 @@ function MembersTab() {
     setLoginLogLoading(false);
   }
 
+  async function handleSetGdrive(memberId) {
+    setGdriveBusy(true);
+    try {
+      await adminSetGoogleDriveEmail(memberId, gdriveInput.trim());
+      showToast('已更新 Google Drive Email');
+      setGdriveFor(null);
+      setGdriveInput('');
+      await reload();
+    } catch (err) {
+      showToast(err.message);
+    } finally {
+      setGdriveBusy(false);
+    }
+  }
+
   async function handleAdminBindTelegram(memberId) {
     if (!tgUserId.trim()) { showToast(t('tg_bind_id_required_toast')); return; }
     setTgBinding(true);
@@ -1629,6 +1767,7 @@ function MembersTab() {
             <button className="btn btn-ghost btn-sm" onClick={() => setBalanceFor(balanceFor === m.id ? null : m.id)}>{t('adjust_balance_btn')}</button>
             <button className="btn btn-ghost btn-sm" onClick={() => toggleTxHistory(m.id)}>{t('tx_history_btn')}</button>
             <button className="btn btn-ghost btn-sm" onClick={() => toggleLoginLogs(m.id)}>📱 登入裝置紀錄</button>
+            <button className="btn btn-ghost btn-sm" onClick={() => setGdriveFor(gdriveFor === m.id ? null : m.id)}>📁 Google Drive Email</button>
             <button
               className="btn btn-ghost btn-sm"
               onClick={() => {
@@ -1695,6 +1834,25 @@ function MembersTab() {
                   <div style={{ wordBreak: 'break-all', marginTop: 2 }}>{log.user_agent || '（無裝置資訊）'}</div>
                 </div>
               )) : <div style={{ fontSize: 12, color: 'var(--muted)' }}>尚無登入紀錄</div>}
+            </div>
+          )}
+          {gdriveFor === m.id && (
+            <div style={{ marginTop: 14, borderTop: '1px solid var(--line)', paddingTop: 12 }}>
+              <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 8 }}>
+                目前：{m.google_drive_email || '（尚未設定）'}
+              </div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <input
+                  value={gdriveInput}
+                  onChange={(e) => setGdriveInput(e.target.value)}
+                  type="email"
+                  placeholder="輸入新的 Google Drive Email（留空可清除）"
+                  style={{ maxWidth: 260 }}
+                />
+                <button className="btn btn-amber btn-sm" disabled={gdriveBusy} onClick={() => handleSetGdrive(m.id)}>
+                  {gdriveBusy ? t('processing') : t('save_btn')}
+                </button>
+              </div>
             </div>
           )}
         </div>

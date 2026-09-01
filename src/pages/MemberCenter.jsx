@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { fetchMyPermissions, fetchMyPurchases, fetchArticlesByProduct, purchaseWithBalance, fetchActiveAnnouncements, toggleEmailNotify, fetchMyFavoriteArticles, generateTelegramBindToken, fetchMyTelegramBinding, generateChannelInviteLink, fetchProductsWithTelegramChannel } from '../lib/api';
+import { fetchMyPermissions, fetchMyPurchases, fetchArticlesByProduct, purchaseWithBalance, fetchActiveAnnouncements, toggleEmailNotify, fetchMyFavoriteArticles, generateTelegramBindToken, fetchMyTelegramBinding, generateChannelInviteLink, fetchProductsWithTelegramChannel, setMyGoogleDriveEmail } from '../lib/api';
 import { useAuth } from '../lib/AuthContext';
 import { useToast } from '../lib/ToastContext';
 import { useLang } from '../lib/LangContext';
@@ -60,6 +60,27 @@ export default function MemberCenter() {
     }
   }
 
+  async function handleSetGdriveEmail() {
+    if (!gdriveEmailInput.trim()) { showToast('請輸入 Google Drive Email'); return; }
+    setGdriveEmailBusy(true);
+    try {
+      const result = await setMyGoogleDriveEmail(gdriveEmailInput.trim());
+      if (result.status === 'ok') {
+        showToast('Google Drive Email 已設定，之後如需更改請聯繫客服');
+        await refreshProfile();
+      } else if (result.status === 'invalid_email') {
+        showToast('Email 格式不正確，請重新輸入');
+      } else if (result.status === 'already_set') {
+        showToast('這個欄位已經設定過，無法自行修改，請聯繫客服');
+        await refreshProfile();
+      }
+    } catch (err) {
+      showToast(err.message);
+    } finally {
+      setGdriveEmailBusy(false);
+    }
+  }
+
 
   async function handleGetInviteLink(productId) {
     try {
@@ -86,6 +107,8 @@ export default function MemberCenter() {
   const [favorites, setFavorites] = useState([]);
   const [telegramBinding, setTelegramBinding] = useState(null);
   const [bindingBusy, setBindingBusy] = useState(false);
+  const [gdriveEmailInput, setGdriveEmailInput] = useState('');
+  const [gdriveEmailBusy, setGdriveEmailBusy] = useState(false);
   const [telegramProductIds, setTelegramProductIds] = useState(new Set());
   const [loading, setLoading] = useState(true);
   const [renewingId, setRenewingId] = useState(null);
@@ -251,6 +274,29 @@ export default function MemberCenter() {
             <button className="btn btn-ghost btn-sm" disabled={bindingBusy} onClick={handleBindTelegram}>
               🔵 {bindingBusy ? t('processing') : t('bind_telegram_btn')}
             </button>
+          )}
+        </div>
+
+        {/* Google Drive Email：只能填一次，填过之后锁住只读，如需更改要联系客服由后台改 */}
+        <div style={{ marginTop: 14 }}>
+          {profile?.google_drive_email ? (
+            <div className="session-box">
+              <span className="dotlive"></span>
+              <div className="meta">Google Drive Email（已鎖定）<br /><b>{profile.google_drive_email}</b></div>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+              <input
+                value={gdriveEmailInput}
+                onChange={(e) => setGdriveEmailInput(e.target.value)}
+                type="email"
+                placeholder="填寫你的 Google Drive Email"
+                style={{ maxWidth: 260 }}
+              />
+              <button className="btn btn-ghost btn-sm" disabled={gdriveEmailBusy} onClick={handleSetGdriveEmail}>
+                {gdriveEmailBusy ? t('processing') : '確認設定（僅能填寫一次）'}
+              </button>
+            </div>
           )}
         </div>
       </div>

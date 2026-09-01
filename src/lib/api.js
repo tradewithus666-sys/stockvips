@@ -549,3 +549,32 @@ export async function fetchLoginLogs(memberId, limit = 30) {
   if (error) throw error;
   return data;
 }
+
+export async function setMyGoogleDriveEmail(email) {
+  const { data, error } = await supabase.rpc('set_my_google_drive_email', { p_email: email });
+  if (error) throw error;
+  return data;
+}
+
+export async function adminSetGoogleDriveEmail(memberId, email) {
+  const { data, error } = await supabase.rpc('admin_set_google_drive_email', { p_member_id: memberId, p_email: email });
+  if (error) throw error;
+  return data;
+}
+
+export async function fetchGdriveActiveList() {
+  const { data, error } = await supabase.rpc('admin_fetch_gdrive_active_list');
+  if (error) throw error;
+  return data;
+}
+
+export async function fetchGdriveRemovalList() {
+  const { data, error } = await supabase.rpc('admin_fetch_gdrive_removal_list');
+  if (error) throw error;
+  return data;
+}
+
+export async function markGdriveExported() {
+  const { error } = await supabase.rpc('admin_mark_gdrive_exported');
+  if (error) throw error;
+}
