@@ -1,14 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 
 /**
- * 会员登入后，在会员相关页面全程显示的满屏浮水印。
- *
- * 【本次修改】原本设计成透明度 0.02 的隐形浮水印（肉眼几乎看不见，专门给截图外流后
- * 用技术手段还原追溯）。现在改成清楚可见的版本（字体加大、颜色加深），
- * 让会员一眼就能看到自己的 email 疊在画面上，从「事后追溯」改成「即时吓阻」的设计目的。
- *
- * 取舍：这样阅读体验会持续受到浮水印影响（不只是 PDF 那种「看完就关掉」的情境），
- * 但吓阻效果更直接——转发前就知道畫面上帶著自己的身份标记。
+ * 会员登入后，在会员相关页面全程显示的满屏低密度浮水印。
+ * 使用网站配色里完全没出现过的洋红色调（经过多次调整，目前透明度 0.15，
+ * 比原本 0.02 的隐形设计再深一些，方便肉眼稍微能察觉，但维持原本的密度/字体大小，
+ * 不会大到干扰阅读体验）。
  */
 export default function Watermark({ text, active, zIndex }) {
   const [grid, setGrid] = useState({ count: 0, cols: 2 });
@@ -19,11 +15,10 @@ export default function Watermark({ text, active, zIndex }) {
     function recompute() {
       const w = window.innerWidth * 1.4;
       const h = window.innerHeight * 1.4;
-      // 【本次修改】字体加大了，格子尺寸也跟着放大，避免相邻的浮水印文字彼此重叠、糊成一片
-      const cellW = 220, cellH = 140;
+      const cellW = 95, cellH = 65;
       const cols = Math.max(2, Math.ceil(w / cellW));
       const rows = Math.max(2, Math.ceil(h / cellH));
-      setGrid({ count: Math.min(cols * rows, 400), cols });
+      setGrid({ count: Math.min(cols * rows, 1500), cols });
     }
     recompute();
     window.addEventListener('resize', recompute);
