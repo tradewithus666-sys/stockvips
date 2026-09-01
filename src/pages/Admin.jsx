@@ -17,7 +17,7 @@ import {
   fetchStatsArticleEngagement, fetchStatsProductSubscribers, fetchStatsExpiringSoon,
   fetchLoginLogs,
   adminSetGoogleDriveEmail,
-  fetchGdriveActiveList, fetchGdriveRemovalList, markGdriveExported,
+  fetchGdriveActiveList, fetchGdriveRemovalList, markGdriveExported, toggleGdriveEnabled,
 } from '../lib/api';
 import { useToast } from '../lib/ToastContext';
 import { useLang } from '../lib/LangContext';
@@ -266,16 +266,23 @@ function StatsTab() {
 function GdriveListTab() {
   const [activeList, setActiveList] = useState([]);
   const [removalList, setRemovalList] = useState([]);
+  const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [marking, setMarking] = useState(false);
+  const [markingId, setMarkingId] = useState(null);
+  const [showSettings, setShowSettings] = useState(false);
   const showToast = useToast();
 
   async function reload() {
     setLoading(true);
     try {
-      const [active, removal] = await Promise.all([fetchGdriveActiveList(), fetchGdriveRemovalList()]);
+      const [active, removal, prods] = await Promise.all([
+        fetchGdriveActiveList(),
+        fetchGdriveRemovalList(),
+        fetchProducts(),
+      ]);
       setActiveList(active || []);
       setRemovalList(removal || []);
+      setProducts((prods || []).filter((p) => p.type === 'subscription'));
     } catch (err) {
       showToast(err.message);
     }
@@ -300,80 +307,134 @@ function GdriveListTab() {
     URL.revokeObjectURL(url);
   }
 
-  async function handleMarkExported() {
-    setMarking(true);
+  async function handleMarkExported(productId) {
+    setMarkingId(productId);
     try {
-      await markGdriveExported();
-      showToast('已標記本次匯出完成，下次「該移除名單」會以這次為基準');
+      await markGdriveExported(productId);
+      showToast('已標記這個頻道本次匯出完成');
       await reload();
     } catch (err) {
       showToast(err.message);
     } finally {
-      setMarking(false);
+      setMarkingId(null);
+    }
+  }
+
+  async function handleToggleEnabled(productId, enabled) {
+    try {
+      await toggleGdriveEnabled(productId, enabled);
+      await reload();
+    } catch (err) {
+      showToast(err.message);
     }
   }
 
   if (loading) return <div className="loading-screen">载入中…</div>;
 
+  const enabledProducts = products.filter((p) => p.gdrive_enabled);
+  // 依 product_id 把兩份名單各自分組，方便每個頻道獨立顯示、獨立複製/下載/標記
+  const groupByProduct = (list) => {
+    const map = {};
+    for (const r of list) {
+      if (!map[r.product_id]) map[r.product_id] = [];
+      map[r.product_id].push(r);
+    }
+    return map;
+  };
+  const activeByProduct = groupByProduct(activeList);
+  const removalByProduct = groupByProduct(removalList);
+
   return (
     <div>
-      <p style={{ color: 'var(--muted)', fontSize: 12.5, marginBottom: 16 }}>
-        這裡列出目前有效、且已填寫 Google Drive Email 的會員名單，供你手動複製貼上到 Google Group
-        的成員管理頁面。建議每次處理完，都點下方「標記本次已匯出」，這樣下次「該移除名單」
-        才會準確算出「上次匯出之後才到期」的人。
-      </p>
-
-      <div className="form-panel" style={{ marginBottom: 20 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-          <div style={{ fontWeight: 700 }}>✅ 目前有效名單（{activeList.length} 人）</div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button className="btn btn-ghost btn-sm" onClick={() => copyEmails(activeList)}>複製全部</button>
-            <button className="btn btn-ghost btn-sm" onClick={() => downloadEmails(activeList, 'gdrive_active_list.txt')}>下載 .txt</button>
-          </div>
-        </div>
-        <table className="admin-table">
-          <thead><tr><th>會員信箱</th><th>Google Drive Email</th><th>頻道</th><th>到期日</th></tr></thead>
-          <tbody>
-            {activeList.map((r, i) => (
-              <tr key={i}>
-                <td>{r.email}</td>
-                <td>{r.google_drive_email}</td>
-                <td>{r.product_name}</td>
-                <td>{r.expires_at || '永久有效'}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {!activeList.length && <div className="empty">目前沒有符合條件的有效會員</div>}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <p style={{ color: 'var(--muted)', fontSize: 12.5, margin: 0 }}>
+          每個頻道各自獨立的 Google Drive Email 名單，供你分別複製貼上到各自的 Google Group。
+          每個頻道處理完後記得各自點「標記本次已匯出」，「該移除名單」才會準確。
+        </p>
+        <button className="btn btn-ghost btn-sm" onClick={() => setShowSettings((v) => !v)}>
+          {showSettings ? '關閉設定' : '⚙ 設定啟用頻道'}
+        </button>
       </div>
 
-      <div className="form-panel" style={{ marginBottom: 20 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-          <div style={{ fontWeight: 700 }}>🚫 該移除名單（{removalList.length} 人，上次匯出後才到期）</div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button className="btn btn-ghost btn-sm" onClick={() => copyEmails(removalList)}>複製全部</button>
-            <button className="btn btn-ghost btn-sm" onClick={() => downloadEmails(removalList, 'gdrive_removal_list.txt')}>下載 .txt</button>
-          </div>
+      {showSettings && (
+        <div className="form-panel" style={{ marginBottom: 20 }}>
+          <div style={{ fontWeight: 700, marginBottom: 10 }}>選擇哪些頻道要啟用 Google Drive 名單功能</div>
+          {products.map((p) => (
+            <label key={p.id} className="tg-sync-checkbox" style={{ display: 'block', marginBottom: 6 }}>
+              <input
+                type="checkbox"
+                checked={!!p.gdrive_enabled}
+                onChange={(e) => handleToggleEnabled(p.id, e.target.checked)}
+              />
+              {p.name}
+            </label>
+          ))}
         </div>
-        <table className="admin-table">
-          <thead><tr><th>會員信箱</th><th>Google Drive Email</th><th>頻道</th><th>過期日</th></tr></thead>
-          <tbody>
-            {removalList.map((r, i) => (
-              <tr key={i}>
-                <td>{r.email}</td>
-                <td>{r.google_drive_email}</td>
-                <td>{r.product_name}</td>
-                <td>{r.expires_at}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {!removalList.length && <div className="empty">目前沒有需要移除的人</div>}
-      </div>
+      )}
 
-      <button className="btn btn-amber" disabled={marking} onClick={handleMarkExported}>
-        {marking ? '處理中…' : '✓ 標記本次已匯出'}
-      </button>
+      {enabledProducts.length === 0 && (
+        <div className="empty">尚未啟用任何頻道，請先點右上角「設定啟用頻道」勾選要用這個功能的頻道</div>
+      )}
+
+      {enabledProducts.map((product) => {
+        const active = activeByProduct[product.id] || [];
+        const removal = removalByProduct[product.id] || [];
+        return (
+          <div key={product.id} style={{ marginBottom: 28, paddingBottom: 20, borderBottom: '1px solid var(--line)' }}>
+            <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 12 }}>📁 {product.name}</div>
+
+            <div className="form-panel" style={{ marginBottom: 12 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <div style={{ fontWeight: 700 }}>✅ 目前有效名單（{active.length} 人）</div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button className="btn btn-ghost btn-sm" onClick={() => copyEmails(active)}>複製全部</button>
+                  <button className="btn btn-ghost btn-sm" onClick={() => downloadEmails(active, `${product.name}_active.txt`)}>下載 .txt</button>
+                </div>
+              </div>
+              <table className="admin-table">
+                <thead><tr><th>會員信箱</th><th>Google Drive Email</th><th>到期日</th></tr></thead>
+                <tbody>
+                  {active.map((r, i) => (
+                    <tr key={i}>
+                      <td>{r.email}</td>
+                      <td>{r.google_drive_email}</td>
+                      <td>{r.expires_at || '永久有效'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {!active.length && <div className="empty">目前沒有符合條件的有效會員</div>}
+            </div>
+
+            <div className="form-panel" style={{ marginBottom: 12 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <div style={{ fontWeight: 700 }}>🚫 該移除名單（{removal.length} 人）</div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button className="btn btn-ghost btn-sm" onClick={() => copyEmails(removal)}>複製全部</button>
+                  <button className="btn btn-ghost btn-sm" onClick={() => downloadEmails(removal, `${product.name}_removal.txt`)}>下載 .txt</button>
+                </div>
+              </div>
+              <table className="admin-table">
+                <thead><tr><th>會員信箱</th><th>Google Drive Email</th><th>過期日</th></tr></thead>
+                <tbody>
+                  {removal.map((r, i) => (
+                    <tr key={i}>
+                      <td>{r.email}</td>
+                      <td>{r.google_drive_email}</td>
+                      <td>{r.expires_at}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {!removal.length && <div className="empty">目前沒有需要移除的人</div>}
+            </div>
+
+            <button className="btn btn-amber btn-sm" disabled={markingId === product.id} onClick={() => handleMarkExported(product.id)}>
+              {markingId === product.id ? '處理中…' : `✓ 標記「${product.name}」本次已匯出`}
+            </button>
+          </div>
+        );
+      })}
     </div>
   );
 }

@@ -574,7 +574,12 @@ export async function fetchGdriveRemovalList() {
   return data;
 }
 
-export async function markGdriveExported() {
-  const { error } = await supabase.rpc('admin_mark_gdrive_exported');
+export async function markGdriveExported(productId) {
+  const { error } = await supabase.rpc('admin_mark_gdrive_exported', { p_product_id: productId });
+  if (error) throw error;
+}
+
+export async function toggleGdriveEnabled(productId, enabled) {
+  const { error } = await supabase.rpc('admin_toggle_gdrive_enabled', { p_product_id: productId, p_enabled: enabled });
   if (error) throw error;
 }
