@@ -19,6 +19,7 @@ export default function ArticleReader() {
   const [isFavorite, setIsFavorite] = useState(false);
   const [loading, setLoading] = useState(true);
   const [openPdf, setOpenPdf] = useState(null); // { value } | null —— 全萤幕检视中的 PDF
+  const [downloadingPdf, setDownloadingPdf] = useState(null); // 正在下载中的 PDF path（用来控制该颗按钮的 loading 状态）
 
   useEffect(() => {
     let mounted = true;
@@ -62,6 +63,53 @@ export default function ArticleReader() {
     }
   }
 
+  async function handleDownloadPdf(path) {
+    if (downloadingPdf) return; // 避免重複点击
+    setDownloadingPdf(path);
+    try {
+      // 跟全萤幕检视器一样，先确认/刷新一次令牌，避免恰好过期导致 401
+      let { data: sessionData } = await supabase.auth.getSession();
+      let accessToken = sessionData?.session?.access_token;
+      const expiresAt = sessionData?.session?.expires_at;
+      const isExpiringSoon = expiresAt && expiresAt * 1000 < Date.now() + 30_000;
+      if (!accessToken || isExpiringSoon) {
+        const { data: refreshed } = await supabase.auth.refreshSession();
+        accessToken = refreshed?.session?.access_token ?? accessToken;
+      }
+      if (!accessToken) throw new Error('尚未登入');
+
+      const fetchPdf = (token) => fetch(
+        `/.netlify/functions/pdf-watermark?article_id=${encodeURIComponent(id)}&path=${encodeURIComponent(path)}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      let res = await fetchPdf(accessToken);
+      if (res.status === 401) {
+        const { data: refreshed } = await supabase.auth.refreshSession();
+        if (refreshed?.session?.access_token) {
+          res = await fetchPdf(refreshed.session.access_token);
+        }
+      }
+      if (!res.ok) throw new Error(`下载失败（${res.status}）`);
+
+      const bytes = await res.arrayBuffer();
+      const blob = new Blob([bytes], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const filename = path?.split('/').pop() || 'document.pdf';
+      a.download = filename.endsWith('.pdf') ? filename : `${filename}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      alert(err.message || '下载失败，请稍后再试');
+    } finally {
+      setDownloadingPdf(null);
+    }
+  }
+
   if (loading) return <div className="loading-screen">{t('loading')}</div>;
   if (!article) return <div className="empty">{t('product_not_found_short')}</div>;
 
@@ -94,6 +142,16 @@ export default function ArticleReader() {
                     <div className="pdf-preview-title">{t('pdf_preview_title')}</div>
                     <div className="pdf-preview-hint">{t('pdf_preview_hint')}</div>
                   </div>
+                  {/* 独立的下载按钮，如果网页内嵌检视器打不开，可以直接下载到本机用自己装置的 PDF App 打开。
+                      stopPropagation 避免点下载时，事件往外冒泡触发外层卡片的 onClick（打开全萤幕检视器） */}
+                  <button
+                    className="pdf-preview-download-btn"
+                    disabled={!owned || downloadingPdf === b.value}
+                    onClick={(e) => { e.stopPropagation(); owned && handleDownloadPdf(b.value); }}
+                    title="下载到本机"
+                  >
+                    {downloadingPdf === b.value ? '⏳' : '⬇'}
+                  </button>
                   <div className="pdf-preview-arrow">→</div>
                 </div>
               )

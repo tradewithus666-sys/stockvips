@@ -417,6 +417,9 @@ button{font-family:inherit;cursor:pointer;border:none;}
 .pdf-preview-title{font-weight:700;font-size:14px;color:var(--text);}
 .pdf-preview-hint{font-size:12px;color:var(--muted);margin-top:2px;}
 .pdf-preview-arrow{color:var(--muted);font-size:18px;flex-shrink:0;}
+.pdf-preview-download-btn{width:34px;height:34px;flex-shrink:0;border-radius:8px;background:var(--surface-2);border:1px solid var(--line);color:var(--text);font-size:15px;display:flex;align-items:center;justify-content:center;}
+.pdf-preview-download-btn:hover{border-color:var(--amber);}
+.pdf-preview-download-btn:disabled{opacity:0.4;}
 .locked .pdf-preview-card{filter:blur(10px);pointer-events:none;}
 
 /* 点击预览卡片后的全萤幕 PDF 检视疊层：佔满整个画面，滑动手势只会作用在 PDF 本身，
