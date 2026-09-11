@@ -17,6 +17,8 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
 export default function PdfFullscreenViewer({ articleId, path, watermarkText, onClose }) {
   const containerRef = useRef(null);
   const [status, setStatus] = useState('loading'); // loading | error | ready
+  const [pdfBytes, setPdfBytes] = useState(null); // 保留這次抓到的位元組，供下載按鈕使用
+  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -56,6 +58,7 @@ export default function PdfFullscreenViewer({ articleId, path, watermarkText, on
 
         const bytes = await res.arrayBuffer();
         if (cancelled) return;
+        setPdfBytes(bytes);
 
         // 某些 iOS 版本的 WebKit 处理 PDF.js 用的 Web Worker 时会出问题——可能在解析文件那一步
         // 就失败，也可能是文件解析成功、但某一頁實際 render 時才失败。這裡把「載入文件 + 畫出
@@ -116,9 +119,36 @@ export default function PdfFullscreenViewer({ articleId, path, watermarkText, on
     return () => { cancelled = true; };
   }, [articleId, path]);
 
+  function handleDownload() {
+    if (!pdfBytes) return;
+    setDownloading(true);
+    try {
+      const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = (path?.split('/').pop() || 'document') + (path?.endsWith('.pdf') ? '' : '.pdf');
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } finally {
+      setDownloading(false);
+    }
+  }
+
   return (
     <div className="pdf-fullscreen-overlay">
       <div className="pdf-fullscreen-header">
+        {/* 如果网页内嵌检视器打不开，会员可以下载到本机、用自己装置的 PDF App 打开 */}
+        <button
+          className="pdf-fullscreen-download"
+          onClick={handleDownload}
+          disabled={!pdfBytes || downloading}
+          title="下载到本机"
+        >
+          ⬇ 下载
+        </button>
         <button className="pdf-fullscreen-close" onClick={onClose}>✕</button>
       </div>
       <div className="pdf-fullscreen-body">

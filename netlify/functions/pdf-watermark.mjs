@@ -84,25 +84,24 @@ export default async (req) => {
   if (!fileRes.ok) return new Response('File not found', { status: 404 });
   const originalBytes = await fileRes.arrayBuffer();
 
-  // 第四步：即时把这位会员的追蹤資訊烧进 PDF 每一页
+  // 第四步：烧上统一固定的浮水印文字
   let watermarked;
   try {
     const pdfDoc = await PDFDocument.load(originalBytes);
     const pages = pdfDoc.getPages();
-    const stamp = user.email; // 【本次修改】不再显示时间戳记，只保留会员 email
-    const PROMO_TEXT = 'Tradewithus888.com (FREE TRIAL)'; // 【本次修改】改用纯英文，不用额外嵌入中文字型
+    const WATERMARK_TEXT = 'Tradewithus888.com'; // 【本次修改】统一浮水印文字，不再显示会员各自的 email
     const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
 
     for (const page of pages) {
       const { width, height } = page.getSize();
 
-      // 中間密集斜紋會員追蹤浮水印——【本次修改】字體加大、透明度加深，
-      // 方便肉眼更容易發現、也讓浮水印在轉發過程中更不容易被壓縮/降畫質後糊到看不見
+      // 中間密集斜紋浮水印
       for (let y = -20; y < height + 40; y += 160) {
         for (let x = -60; x < width + 60; x += 320) {
-          page.drawText(stamp, {
+          page.drawText(WATERMARK_TEXT, {
             x, y,
             size: 18,
+            font: helvetica,
             rotate: degrees(-28),
             color: rgb(0.85, 0.1, 0.5),
             opacity: 0.20,
@@ -110,10 +109,10 @@ export default async (req) => {
         }
       }
 
-      // 【本次新增】四个角落各加一次固定宣传文字，字体稍大、角度水平，方便肉眼直接看清楚
+      // 四个角落同一个固定浮水印文字
       const margin = 14;
-      const promoSize = 9; // 【本次修改】四角文字改回 9（中间斜纹浮水印维持 14）
-      const promoWidth = helvetica.widthOfTextAtSize(PROMO_TEXT, promoSize); // 精准测量文字实际宽度，右侧对齐才不会跑掉
+      const promoSize = 9;
+      const promoWidth = helvetica.widthOfTextAtSize(WATERMARK_TEXT, promoSize); // 精准测量文字实际宽度，右侧对齐才不会跑掉
       const corners = [
         { x: margin, y: height - margin - promoSize },                 // 左上
         { x: width - margin - promoWidth, y: height - margin - promoSize }, // 右上
@@ -121,7 +120,7 @@ export default async (req) => {
         { x: width - margin - promoWidth, y: margin },                  // 右下
       ];
       for (const { x, y } of corners) {
-        page.drawText(PROMO_TEXT, {
+        page.drawText(WATERMARK_TEXT, {
           x, y,
           size: promoSize,
           font: helvetica,
