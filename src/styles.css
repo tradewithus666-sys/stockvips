@@ -422,12 +422,9 @@ button{font-family:inherit;cursor:pointer;border:none;}
 /* 点击预览卡片后的全萤幕 PDF 检视疊层：佔满整个画面，滑动手势只会作用在 PDF 本身，
    不再跟外层文章页面抢捲动 */
 .pdf-fullscreen-overlay{position:fixed;inset:0;z-index:9999;background:#000;display:flex;flex-direction:column;}
-.pdf-fullscreen-header{flex-shrink:0;display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#111;}
+.pdf-fullscreen-header{flex-shrink:0;display:flex;justify-content:flex-end;padding:10px 14px;background:#111;}
 .pdf-fullscreen-close{width:36px;height:36px;border-radius:8px;background:rgba(255,255,255,0.12);color:#fff;font-size:18px;border:1px solid rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;}
 .pdf-fullscreen-close:hover{background:rgba(255,255,255,0.22);}
-.pdf-fullscreen-download{height:36px;padding:0 14px;border-radius:8px;background:rgba(255,255,255,0.12);color:#fff;font-size:13px;font-weight:700;border:1px solid rgba(255,255,255,0.2);display:flex;align-items:center;gap:6px;}
-.pdf-fullscreen-download:hover{background:rgba(255,255,255,0.22);}
-.pdf-fullscreen-download:disabled{opacity:0.4;}
 .pdf-fullscreen-body{position:relative;flex:1;min-height:0;background:#525659;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:10px;box-sizing:border-box;}
 .pdf-fullscreen-status{color:#fff;text-align:center;padding:40px 0;font-size:14px;}
 .pdf-pages-container{max-width:900px;margin:0 auto;}
