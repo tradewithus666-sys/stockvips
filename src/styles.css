@@ -417,8 +417,8 @@ button{font-family:inherit;cursor:pointer;border:none;}
 .pdf-preview-title{font-weight:700;font-size:14px;color:var(--text);}
 .pdf-preview-hint{font-size:12px;color:var(--muted);margin-top:2px;}
 .pdf-preview-arrow{color:var(--muted);font-size:18px;flex-shrink:0;}
-.pdf-preview-download-btn{width:34px;height:34px;flex-shrink:0;border-radius:8px;background:var(--surface-2);border:1px solid var(--line);color:var(--text);font-size:15px;display:flex;align-items:center;justify-content:center;}
-.pdf-preview-download-btn:hover{border-color:var(--amber);}
+.pdf-preview-download-btn{height:36px;padding:0 14px;flex-shrink:0;border-radius:8px;background:var(--amber);border:none;color:#14100a;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap;}
+.pdf-preview-download-btn:hover{opacity:0.9;}
 .pdf-preview-download-btn:disabled{opacity:0.4;}
 .locked .pdf-preview-card{filter:blur(10px);pointer-events:none;}
 

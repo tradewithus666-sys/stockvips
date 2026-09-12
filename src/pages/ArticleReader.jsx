@@ -150,7 +150,7 @@ export default function ArticleReader() {
                     onClick={(e) => { e.stopPropagation(); owned && handleDownloadPdf(b.value); }}
                     title="下载到本机"
                   >
-                    {downloadingPdf === b.value ? '⏳' : '⬇'}
+                    {downloadingPdf === b.value ? '⏳ 下載中' : '⬇ 下載'}
                   </button>
                   <div className="pdf-preview-arrow">→</div>
                 </div>
