@@ -7,14 +7,24 @@
 // 流程：验证登入身份 → 确认这位会员真的对这篇文章的商品有有效权限 →
 // 用 service_role key 从私有 bucket 抓出原始 PDF → 疊上浮水印 → 回传。
 //
-// 【本次修改】浮水印从「PDF 文字物件」改成「点阵图片疊加」：先用 Node 端的 canvas
-// 画一张透明背景的浮水印图片，再用 pdf-lib 的 drawImage 疊到每一页上。
-// 目的：文字物件在 PDF 编辑软体（例如 Adobe Acrobat）里可以直接选取、按删除键就移除，
-// 操作跟删除文件里任何一段文字一样简单；改成图片疊加后，对方要移除就不能只是
+// 浮水印是「点阵图片疊加」（不是 PDF 文字物件）：先用 Node 端的 canvas 画一张透明背景的
+// 浮水印图片，再用 pdf-lib 的 drawImage 疊到每一页上。文字物件在 PDF 编辑软体（例如
+// Adobe Acrobat）里可以直接选取、按删除键就移除；改成图片疊加后，对方要移除就不能只是
 // 「选取文字、按删除」，而要用影像编辑的方式去修补底层内容，操作难度跟耗时大幅提高。
+//
+// 【重要】字型明确打包 + 註冊，不依赖执行环境本身有没有装系统字型——Netlify 的
+// serverless 容器通常是最小化环境，不保证有任何系统字型，若用 'sans-serif' 这种
+// 依赖系统字型查找的写法，字型找不到时 canvas 不会报错，而是「安静地不画出文字」，
+// 导致浮水印图片变成完全透明的空白图，疊上去后完全看不到任何浮水印痕迹。
 
 import { PDFDocument } from 'pdf-lib';
-import { createCanvas } from '@napi-rs/canvas';
+import { createCanvas, GlobalFonts } from '@napi-rs/canvas';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const FONT_FAMILY = 'WatermarkFont';
+GlobalFonts.registerFromPath(join(__dirname, 'watermark-font.ttf'), FONT_FAMILY);
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -40,19 +50,17 @@ async function getUserFromToken(accessToken) {
 }
 
 // 用 canvas 画一张透明背景的浮水印图片：中間密集斜紋文字 + 四个角落文字，
-// 尺寸用相对比例（1000x1400，接近 A4 比例），之后疊到每一页时会依照该页实际尺寸缩放，
-// 不用为每一页个别产生一张图（省运算），缩放不会影响清晰度太多，因为浮水印本身线条粗、不需要精细。
+// 尺寸用相对比例（1000x1400，接近 A4 比例），之后疊到每一页时会依照该页实际尺寸缩放。
 function buildWatermarkImage() {
   const W = 1000, H = 1400;
   const canvas = createCanvas(W, H);
   const ctx = canvas.getContext('2d');
   ctx.clearRect(0, 0, W, H); // 保持透明背景
 
-  ctx.fillStyle = 'rgba(166,166,166,0.20)'; // 浅灰色，跟之前文字版本颜色/透明度一致
-  ctx.font = 'bold 34px sans-serif';
+  ctx.fillStyle = 'rgba(166,166,166,0.20)'; // 浅灰色
+  ctx.font = `bold 34px ${FONT_FAMILY}`; // 明确指定我们自己注册的字型，不依赖环境系统字型
   ctx.textBaseline = 'middle';
 
-  // 中間密集斜紋，跟之前文字版本的间距逻辑对应换算成这张图片的比例尺
   for (let y = -40; y < H + 80; y += 170) {
     for (let x = -120; x < W + 120; x += 340) {
       ctx.save();
@@ -63,9 +71,8 @@ function buildWatermarkImage() {
     }
   }
 
-  // 四个角落文字，颜色更深一点、方便肉眼直接看清楚
   ctx.fillStyle = 'rgba(166,166,166,0.35)';
-  ctx.font = 'bold 17px sans-serif';
+  ctx.font = `bold 17px ${FONT_FAMILY}`;
   const margin = 26;
   const textWidth = ctx.measureText(WATERMARK_TEXT).width;
   ctx.fillText(WATERMARK_TEXT, margin, margin); // 左上
@@ -87,13 +94,11 @@ export default async (req) => {
     return new Response('Bad request', { status: 400 });
   }
 
-  // 第一步：确认这个人真的有登入、令牌有效
   const user = await getUserFromToken(accessToken);
   if (!user?.id) {
     return new Response('Unauthorized', { status: 401 });
   }
 
-  // 第二步：这篇文章属于哪个商品，确认这位会员对该商品有未过期的权限
   let productId;
   try {
     const articles = await sbFetch(`articles?id=eq.${articleId}&select=product_id`);
@@ -117,14 +122,12 @@ export default async (req) => {
     return new Response('Forbidden', { status: 403 });
   }
 
-  // 第三步：从私有 bucket 抓出原始 PDF
   const fileRes = await fetch(`${SUPABASE_URL}/storage/v1/object/private-pdfs/${path}`, {
     headers: { apikey: SERVICE_ROLE_KEY, Authorization: `Bearer ${SERVICE_ROLE_KEY}` },
   });
   if (!fileRes.ok) return new Response('File not found', { status: 404 });
   const originalBytes = await fileRes.arrayBuffer();
 
-  // 第四步：疊上点阵图片浮水印
   let watermarked;
   try {
     const pdfDoc = await PDFDocument.load(originalBytes);
@@ -135,13 +138,7 @@ export default async (req) => {
 
     for (const page of pages) {
       const { width, height } = page.getSize();
-      // 图片本身是透明背景的 PNG，直接拉伸铺满整页即可，不用重複绘制多次
-      page.drawImage(watermarkImage, {
-        x: 0,
-        y: 0,
-        width,
-        height,
-      });
+      page.drawImage(watermarkImage, { x: 0, y: 0, width, height });
     }
     watermarked = await pdfDoc.save();
   } catch (err) {
