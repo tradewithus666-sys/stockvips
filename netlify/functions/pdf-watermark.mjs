@@ -5,16 +5,20 @@
 // 那种第三方服务去抓（那正是之前浮水印被绕过的破口）。
 //
 // 流程：验证登入身份 → 确认这位会员真的对这篇文章的商品有有效权限 →
-// 用 service_role key 从私有 bucket 抓出原始 PDF（一般人、甚至登入的会员都读不到这个 bucket）→
-// 用 pdf-lib 把这位会员的 email 即时烧进 PDF 每一页 → 回传这份「专属这次请求」的浮水印版本。
+// 用 service_role key 从私有 bucket 抓出原始 PDF → 疊上浮水印 → 回传。
 //
-// 因为每次都是即时产生、而且回应设成 no-store，不会有任何一份「乾净、共用」的檔案存在，
-// 就算这次的回应被存下来外流，浮水印本身就直接指出是哪个帐号流出的。
+// 【本次修改】浮水印从「PDF 文字物件」改成「点阵图片疊加」：先用 Node 端的 canvas
+// 画一张透明背景的浮水印图片，再用 pdf-lib 的 drawImage 疊到每一页上。
+// 目的：文字物件在 PDF 编辑软体（例如 Adobe Acrobat）里可以直接选取、按删除键就移除，
+// 操作跟删除文件里任何一段文字一样简单；改成图片疊加后，对方要移除就不能只是
+// 「选取文字、按删除」，而要用影像编辑的方式去修补底层内容，操作难度跟耗时大幅提高。
 
-import { PDFDocument, StandardFonts, rgb, degrees } from 'pdf-lib';
+import { PDFDocument } from 'pdf-lib';
+import { createCanvas } from '@napi-rs/canvas';
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const WATERMARK_TEXT = 'Tradewithus888.com';
 
 async function sbFetch(path) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
@@ -33,6 +37,43 @@ async function getUserFromToken(accessToken) {
   });
   if (!res.ok) return null;
   return res.json();
+}
+
+// 用 canvas 画一张透明背景的浮水印图片：中間密集斜紋文字 + 四个角落文字，
+// 尺寸用相对比例（1000x1400，接近 A4 比例），之后疊到每一页时会依照该页实际尺寸缩放，
+// 不用为每一页个别产生一张图（省运算），缩放不会影响清晰度太多，因为浮水印本身线条粗、不需要精细。
+function buildWatermarkImage() {
+  const W = 1000, H = 1400;
+  const canvas = createCanvas(W, H);
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, W, H); // 保持透明背景
+
+  ctx.fillStyle = 'rgba(166,166,166,0.20)'; // 浅灰色，跟之前文字版本颜色/透明度一致
+  ctx.font = 'bold 34px sans-serif';
+  ctx.textBaseline = 'middle';
+
+  // 中間密集斜紋，跟之前文字版本的间距逻辑对应换算成这张图片的比例尺
+  for (let y = -40; y < H + 80; y += 170) {
+    for (let x = -120; x < W + 120; x += 340) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate((-28 * Math.PI) / 180);
+      ctx.fillText(WATERMARK_TEXT, 0, 0);
+      ctx.restore();
+    }
+  }
+
+  // 四个角落文字，颜色更深一点、方便肉眼直接看清楚
+  ctx.fillStyle = 'rgba(166,166,166,0.35)';
+  ctx.font = 'bold 17px sans-serif';
+  const margin = 26;
+  const textWidth = ctx.measureText(WATERMARK_TEXT).width;
+  ctx.fillText(WATERMARK_TEXT, margin, margin); // 左上
+  ctx.fillText(WATERMARK_TEXT, W - margin - textWidth, margin); // 右上
+  ctx.fillText(WATERMARK_TEXT, margin, H - margin); // 左下
+  ctx.fillText(WATERMARK_TEXT, W - margin - textWidth, H - margin); // 右下
+
+  return canvas.toBuffer('image/png');
 }
 
 export default async (req) => {
@@ -76,58 +117,31 @@ export default async (req) => {
     return new Response('Forbidden', { status: 403 });
   }
 
-  // 第三步：从私有 bucket 抓出原始 PDF（一般人、甚至登入的会员都没有权限直接读这个 bucket，
-  // 只有这里用 service_role key 才能读到）
+  // 第三步：从私有 bucket 抓出原始 PDF
   const fileRes = await fetch(`${SUPABASE_URL}/storage/v1/object/private-pdfs/${path}`, {
     headers: { apikey: SERVICE_ROLE_KEY, Authorization: `Bearer ${SERVICE_ROLE_KEY}` },
   });
   if (!fileRes.ok) return new Response('File not found', { status: 404 });
   const originalBytes = await fileRes.arrayBuffer();
 
-  // 第四步：烧上统一固定的浮水印文字
+  // 第四步：疊上点阵图片浮水印
   let watermarked;
   try {
     const pdfDoc = await PDFDocument.load(originalBytes);
     const pages = pdfDoc.getPages();
-    const WATERMARK_TEXT = 'Tradewithus888.com'; // 【本次修改】统一浮水印文字，不再显示会员各自的 email
-    const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
+
+    const watermarkPngBytes = buildWatermarkImage();
+    const watermarkImage = await pdfDoc.embedPng(watermarkPngBytes);
 
     for (const page of pages) {
       const { width, height } = page.getSize();
-
-      // 中間密集斜紋浮水印
-      for (let y = -20; y < height + 40; y += 160) {
-        for (let x = -60; x < width + 60; x += 320) {
-          page.drawText(WATERMARK_TEXT, {
-            x, y,
-            size: 18,
-            font: helvetica,
-            rotate: degrees(-28),
-            color: rgb(0.85, 0.1, 0.5),
-            opacity: 0.20,
-          });
-        }
-      }
-
-      // 四个角落同一个固定浮水印文字
-      const margin = 14;
-      const promoSize = 9;
-      const promoWidth = helvetica.widthOfTextAtSize(WATERMARK_TEXT, promoSize); // 精准测量文字实际宽度，右侧对齐才不会跑掉
-      const corners = [
-        { x: margin, y: height - margin - promoSize },                 // 左上
-        { x: width - margin - promoWidth, y: height - margin - promoSize }, // 右上
-        { x: margin, y: margin },                                       // 左下
-        { x: width - margin - promoWidth, y: margin },                  // 右下
-      ];
-      for (const { x, y } of corners) {
-        page.drawText(WATERMARK_TEXT, {
-          x, y,
-          size: promoSize,
-          font: helvetica,
-          color: rgb(0.85, 0.1, 0.5),
-          opacity: 0.35,
-        });
-      }
+      // 图片本身是透明背景的 PNG，直接拉伸铺满整页即可，不用重複绘制多次
+      page.drawImage(watermarkImage, {
+        x: 0,
+        y: 0,
+        width,
+        height,
+      });
     }
     watermarked = await pdfDoc.save();
   } catch (err) {
@@ -138,7 +152,7 @@ export default async (req) => {
     status: 200,
     headers: {
       'Content-Type': 'application/pdf',
-      'Cache-Control': 'no-store', // 每次都是即时产生的专属版本，不能被中间任何一层快取存下来共用
+      'Cache-Control': 'no-store',
     },
   });
 };
