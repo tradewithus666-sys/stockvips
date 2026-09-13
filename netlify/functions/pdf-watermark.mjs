@@ -58,11 +58,11 @@ function buildWatermarkImage() {
   ctx.clearRect(0, 0, W, H); // 保持透明背景
 
   ctx.fillStyle = 'rgba(166,166,166,0.20)'; // 浅灰色
-  ctx.font = `bold 20px ${FONT_FAMILY}`; // 【本次修改】字体从 34px 缩小到 20px，避免手机截图局部时看不到完整浮水印文字
+  ctx.font = `bold 22px ${FONT_FAMILY}`; // 字体比原本(34px)小一些，但不像上次(20px+高密度)那么激进
   ctx.textBaseline = 'middle';
 
-  for (let y = -40; y < H + 80; y += 110) {
-    for (let x = -120; x < W + 120; x += 220) {
+  for (let y = -40; y < H + 80; y += 140) {
+    for (let x = -120; x < W + 120; x += 280) {
       ctx.save();
       ctx.translate(x, y);
       ctx.rotate((-28 * Math.PI) / 180);
