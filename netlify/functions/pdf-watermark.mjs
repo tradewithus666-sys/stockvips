@@ -22,9 +22,9 @@ import { createCanvas, GlobalFonts } from '@napi-rs/canvas';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
+const funcDir = dirname(fileURLToPath(import.meta.url));
 const FONT_FAMILY = 'WatermarkFont';
-GlobalFonts.registerFromPath(join(__dirname, 'watermark-font.ttf'), FONT_FAMILY);
+GlobalFonts.registerFromPath(join(funcDir, 'watermark-font.ttf'), FONT_FAMILY);
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
