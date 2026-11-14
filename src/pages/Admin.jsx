@@ -1,3 +1,4 @@
+import RemindersTab from './RemindersTab';
 import { useEffect, useState } from 'react';
 import { supabase } from '../supabaseClient';
 import { uploadImage, uploadPdf } from '../lib/storage';
@@ -51,6 +52,7 @@ export default function Admin() {
           ['stats', '數據圖表'],
           ['gdrive', 'Google Drive 名單'],
           ['broadcast', '群發電郵'],
+	  ['reminders', '續費提醒'],
         ].map(([key, label]) => (
           <button
             key={key}
@@ -71,6 +73,7 @@ export default function Admin() {
       {tab === 'stats' && <StatsTab />}
       {tab === 'gdrive' && <GdriveListTab />}
       {tab === 'broadcast' && <BroadcastTab />}
+      {tab === 'reminders' && <RemindersTab />}
     </div>
   );
 }
