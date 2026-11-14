@@ -15,7 +15,7 @@ export const DICT = {
 4. 不構成任何買賣建議、目標價、投資意見。
 5. 學員須自行判斷，盈虧自負。本人不是證監會持牌人，如有關證券買賣意見請自行向證監會持牌人士咨詢。`,
     // Nav
-    nav_member: '會員中心', nav_logout: '登出', nav_login: '登錄 / 註冊', nav_help: '操作教學', nav_shop: '商店', help_title: '操作教學',
+    nav_member: '會員中心', nav_logout: '登出', nav_login: '登錄 / 註冊', nav_help: '操作教學', nav_shop: '商店', help_title: '操作教學', theme_to_light: '切換為白底黑字', theme_to_dark: '切換為黑底白字',
     help_step1_title: '註冊與登入', help_step1_desc: '點擊右上角「登錄/註冊」，輸入信箱與密碼即可註冊，也可以使用 Google 帳號一鍵登入。',
     help_step2_title: '瀏覽與購買', help_step2_desc: '首頁依「課程／訂閱項目／共享帳號」分類展示，點擊卡片查看詳情，選擇時長與付款方式後即可購買。',
     help_step3_title: '餘額支付與充值', help_step3_desc: '進入「會員中心 → 我的錢包」進行充值：如果使用 USDT 轉帳，系統會自動偵測到帳並立即加值；如果想用其他方式付款，可以點擊聯繫客服，我們確認後會在後台為你手動加值。',
@@ -167,7 +167,7 @@ export const DICT = {
 3. 本频道纯属分享个人的交易日志，并分享给有兴趣的读者作纯粹的教学用途。
 4. 不构成任何买卖建议、目标价、投资意见。
 5. 学员须自行判断，盈亏自负。本人不是证监会持牌人，如有关证券买卖意见请自行向证监会持牌人士咨询。`,
-    nav_member: '会员中心', nav_logout: '登出', nav_login: '登录 / 注册', nav_help: '操作教程', nav_shop: '商店', help_title: '操作教程',
+    nav_member: '会员中心', nav_logout: '登出', nav_login: '登录 / 注册', nav_help: '操作教程', nav_shop: '商店', help_title: '操作教程', theme_to_light: '切换为白底黑字', theme_to_dark: '切换为黑底白字',
     help_step1_title: '注册与登录', help_step1_desc: '点击右上角「登录/注册」，输入邮箱与密码即可注册，也可以使用 Google 账号一键登录。',
     help_step2_title: '浏览与购买', help_step2_desc: '首页依「课程／订阅项目／共享账号」分类展示，点击卡片查看详情，选择时长与付款方式后即可购买。',
     help_step3_title: '余额支付与充值', help_step3_desc: '进入「会员中心 → 我的钱包」进行充值：如果使用 USDT 转帐，系统会自动侦测到帐并立即加值；如果想用其他方式付款，可以点击联系客服，我们确认后会在后台为你手动加值。',
@@ -313,7 +313,7 @@ export const DICT = {
 3. This channel shares a personal trading journal for educational purposes only.
 4. Nothing here constitutes trading advice, price targets, or investment recommendations.
 5. Members must exercise independent judgment; all gains and losses are your own responsibility. The author is not an SFC-licensed person — for securities trading advice, please consult a licensed professional.`,
-    nav_member: 'Member Center', nav_logout: 'Log out', nav_login: 'Log in / Sign up', nav_help: 'Help', nav_shop: 'Shop', help_title: 'How to use StockVIP',
+    nav_member: 'Member Center', nav_logout: 'Log out', nav_login: 'Log in / Sign up', nav_help: 'Help', nav_shop: 'Shop', help_title: 'How to use StockVIP', theme_to_light: 'Switch to light theme', theme_to_dark: 'Switch to dark theme',
     help_step1_title: 'Sign up & log in', help_step1_desc: 'Click "Log in / Sign up" top right, register with email + password, or sign in instantly with Google.',
     help_step2_title: 'Browse & purchase', help_step2_desc: 'The homepage groups items by Course / Subscription / Shared Account. Open a card, pick a duration and payment method, then purchase.',
     help_step3_title: 'Balance payment & top-up', help_step3_desc: 'Go to Member Center -> My Wallet to top up: pay with USDT and it\'s detected automatically for instant credit, or contact support for other payment methods and we\'ll credit your balance manually.',

@@ -1,4 +1,5 @@
-:root{
+:root,
+:root[data-theme="dark"]{
   --bg:#0A0D13;
   --surface:#12161F;
   --surface-2:#1A202B;
@@ -19,7 +20,43 @@
   --radius-md:14px;
   --radius-sm:9px;
   --shadow:0 4px 20px rgba(0,0,0,0.35);
+  --body-text:#B8BFCB;
+  --nav-bg:rgba(10,13,19,0.85);
+  --overlay:rgba(10,13,19,0.55);
+  --overlay-strong:rgba(10,13,19,0.72);
 }
+
+/* ---------- 白底黑字主题：只覆盖颜色变数，版面与功能不变 ---------- */
+:root[data-theme="light"]{
+  --bg:#F5F6F8;
+  --surface:#FFFFFF;
+  --surface-2:#F0F2F5;
+  --surface-3:#E6E9EE;
+  --line:#DDE1E8;
+  --text:#14181F;
+  --muted:#5F6878;
+  --amber:#B06E08;
+  --amber-dark:#8F5805;
+  --amber-tint:rgba(176,110,8,0.10);
+  --green:#0E8A62;
+  --green-tint:rgba(14,138,98,0.10);
+  --purple:#7C4DD0;
+  --purple-tint:rgba(124,77,208,0.10);
+  --red:#C93B31;
+  --red-tint:rgba(201,59,49,0.10);
+  --shadow:0 4px 20px rgba(20,24,31,0.10);
+  --body-text:#3A4350;
+  --nav-bg:rgba(255,255,255,0.85);
+  --overlay:rgba(255,255,255,0.65);
+  --overlay-strong:rgba(255,255,255,0.80);
+}
+.theme-toggle{
+  width:34px;height:34px;border-radius:100px;flex-shrink:0;
+  background:var(--surface-2);border:1px solid var(--line);color:var(--text);
+  font-size:15px;line-height:1;display:flex;align-items:center;justify-content:center;
+  transition:all .15s;
+}
+.theme-toggle:hover{border-color:var(--amber);color:var(--amber);}
 *{box-sizing:border-box;margin:0;padding:0;}
 html{overflow-x:hidden;width:100%;}
 body{
@@ -63,7 +100,7 @@ button{font-family:inherit;cursor:pointer;border:none;}
   position:sticky;top:0;z-index:50;
   display:flex;align-items:center;justify-content:space-between;
   padding:16px 32px;gap:16px;
-  background:rgba(10,13,19,0.85);
+  background:var(--nav-bg);
   backdrop-filter:blur(12px);
   border-bottom:1px solid var(--line);
   flex-wrap:wrap;
@@ -262,7 +299,7 @@ button{font-family:inherit;cursor:pointer;border:none;}
 .article-feed-locked .article-item .ti,.article-feed-locked .article-item .sm{filter:blur(4px);}
 .feed-lock-overlay{
   position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
-  background:rgba(10,13,19,0.55);border-radius:var(--radius-md);
+  background:var(--overlay);border-radius:var(--radius-md);
 }
 
 @media(max-width:780px){ .detail-grid{grid-template-columns:1fr;} }
@@ -370,11 +407,11 @@ button{font-family:inherit;cursor:pointer;border:none;}
 /* ---------- LOCKED CONTENT ---------- */
 .reader{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);padding:36px 40px;position:relative;overflow:hidden;box-shadow:var(--shadow);}
 .reader h3{font-size:21px;margin-bottom:16px;font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;}
-.reader .body-text{color:#B8BFCB;font-size:14.5px;line-height:1.85;white-space:pre-wrap;}
+.reader .body-text{color:var(--body-text);font-size:14.5px;line-height:1.85;white-space:pre-wrap;}
 .locked .body-text{filter:blur(5px);}
 .lock-badge{
   position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:12px;background:rgba(10,13,19,0.72);backdrop-filter:blur(1px);z-index:3;
+  gap:12px;background:var(--overlay-strong);backdrop-filter:blur(1px);z-index:3;
 }
 .lock-badge .icon{font-size:30px;}
 

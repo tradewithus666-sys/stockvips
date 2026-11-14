@@ -1,12 +1,14 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/AuthContext';
 import { useLang } from '../lib/LangContext';
+import { useTheme } from '../lib/ThemeContext';
 import { LANGS, LANG_LABEL } from '../lib/i18n';
 
 export default function Nav() {
   const nav = useNavigate();
   const { user, profile } = useAuth();
   const { lang, setLang, t } = useLang();
+  const { theme, toggleTheme } = useTheme();
 
   return (
     <div className="nav">
@@ -38,6 +40,15 @@ export default function Nav() {
             </button>
           ))}
         </div>
+        <button
+          type="button"
+          className="theme-toggle"
+          onClick={toggleTheme}
+          title={theme === 'dark' ? t('theme_to_light') : t('theme_to_dark')}
+          aria-label={theme === 'dark' ? t('theme_to_light') : t('theme_to_dark')}
+        >
+          {theme === 'dark' ? '☀' : '☾'}
+        </button>
       </div>
     </div>
   );
