@@ -10,6 +10,25 @@ function isExpired(dateStr) {
   return new Date(dateStr) < new Date(new Date().toDateString());
 }
 
+const CATEGORY_ORDER = ['subscription', 'course', 'shared'];
+
+// 如果網站頂部有固定（sticky / fixed）的導覽列，捲動時要扣掉它的高度，避免標題被遮住
+function stickyOffset() {
+  let h = 0;
+  document.querySelectorAll('header, nav, .topbar, .site-header').forEach((el) => {
+    const pos = getComputedStyle(el).position;
+    if (pos === 'sticky' || pos === 'fixed') h = Math.max(h, el.getBoundingClientRect().bottom);
+  });
+  return h;
+}
+
+function scrollToCategory(type) {
+  const el = document.getElementById(`cat-${type}`);
+  if (!el) return;
+  const top = el.getBoundingClientRect().top + window.scrollY - stickyOffset() - 12;
+  window.scrollTo({ top, behavior: 'smooth' });
+}
+
 export default function Home() {
   const [products, setProducts] = useState([]);
   const [unlockedIds, setUnlockedIds] = useState(new Set());
@@ -60,6 +79,27 @@ export default function Home() {
         </div>
       </div>
 
+      <div
+        role="navigation"
+        aria-label={t('type_subscription') + ' / ' + t('type_course') + ' / ' + t('type_shared')}
+        style={{ display: 'flex', gap: 8, margin: '0 0 12px', overflowX: 'auto' }}
+      >
+        {CATEGORY_ORDER.filter((type) => products.some((p) => p.type === type)).map((type) => {
+          const meta = TYPE_META[type];
+          return (
+            <button
+              key={type}
+              type="button"
+              className="btn btn-ghost btn-sm"
+              onClick={() => scrollToCategory(type)}
+              style={{ whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+            >
+              <span style={{ color: meta.color }}>{meta.icon}</span> {meta.label}
+            </button>
+          );
+        })}
+      </div>
+
       <div className="site-search-bar">
         <span className="site-search-icon">🔍</span>
         <input
@@ -70,7 +110,7 @@ export default function Home() {
         {search && <button className="site-search-clear" onClick={() => setSearch('')}>✕</button>}
       </div>
 
-      {['subscription', 'course', 'shared'].map((type) => {
+      {CATEGORY_ORDER.map((type) => {
         const list = products.filter((p) => p.type === type && (
           !search.trim() ||
           p.name?.toLowerCase().includes(search.trim().toLowerCase()) ||
@@ -78,7 +118,7 @@ export default function Home() {
         ));
         const meta = TYPE_META[type];
         return (
-          <div className="cat-section" key={type}>
+          <div className="cat-section" key={type} id={`cat-${type}`}>
             <div className="cat-head">
               <div className="cat-icon" style={{ background: meta.tint, color: meta.color }}>{meta.icon}</div>
               <div>
