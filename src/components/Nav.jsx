@@ -17,38 +17,42 @@ export default function Nav() {
         <div>StockVIP<span className="sub">投资研究所 · TRADING LAB</span></div>
       </div>
       <div className="nav-right">
-        {user ? (
-          <>
-            <span className="nav-user" title={profile?.email ?? user.email}>{profile?.email ?? user.email}</span>
-            <button className="btn btn-amber" onClick={() => nav('/member')}>{t('nav_member')}</button>
-            <button className="btn btn-ghost" onClick={() => nav('/')}>{t('nav_shop')}</button>
-            <button className="btn btn-ghost" onClick={() => nav('/help')}>{t('nav_help')}</button>
-          </>
-        ) : (
-          <>
-            <button className="btn btn-ghost" onClick={() => nav('/')}>{t('nav_shop')}</button>
-            <button className="btn btn-ghost" onClick={() => nav('/help')}>{t('nav_help')}</button>
-            <button className="btn btn-ghost" onClick={() => nav('/login')}>{t('nav_login')}</button>
-          </>
-        )}
-        {/* 管理后台入口已从导览列移除，仅能透过直接输入 /admin 网址进入；
-            路由本身仍由 <RequireAdmin> 做 role='admin' 权限检查，未授权会被导回。 */}
-        <div className="lang-switch">
-          {LANGS.map((l) => (
-            <button key={l} className={`lang-btn ${lang === l ? 'active' : ''}`} onClick={() => setLang(l)}>
-              {LANG_LABEL[l]}
-            </button>
-          ))}
+        <div className="nav-links">
+          {user ? (
+            <>
+              <span className="nav-user" title={profile?.email ?? user.email}>{profile?.email ?? user.email}</span>
+              <button className="btn btn-amber" onClick={() => nav('/member')}>{t('nav_member')}</button>
+              <button className="btn btn-ghost" onClick={() => nav('/')}>{t('nav_shop')}</button>
+              <button className="btn btn-ghost" onClick={() => nav('/help')}>{t('nav_help')}</button>
+            </>
+          ) : (
+            <>
+              <button className="btn btn-ghost" onClick={() => nav('/')}>{t('nav_shop')}</button>
+              <button className="btn btn-ghost" onClick={() => nav('/help')}>{t('nav_help')}</button>
+              <button className="btn btn-ghost" onClick={() => nav('/login')}>{t('nav_login')}</button>
+            </>
+          )}
+          {/* 管理后台入口已从导览列移除，仅能透过直接输入 /admin 网址进入；
+              路由本身仍由 <RequireAdmin> 做 role='admin' 权限检查，未授权会被导回。 */}
         </div>
-        <button
-          type="button"
-          className="theme-toggle"
-          onClick={toggleTheme}
-          title={theme === 'dark' ? t('theme_to_light') : t('theme_to_dark')}
-          aria-label={theme === 'dark' ? t('theme_to_light') : t('theme_to_dark')}
-        >
-          {theme === 'dark' ? '☀' : '☾'}
-        </button>
+        <div className="nav-tools">
+          <div className="lang-switch">
+            {LANGS.map((l) => (
+              <button key={l} className={`lang-btn ${lang === l ? 'active' : ''}`} onClick={() => setLang(l)}>
+                {LANG_LABEL[l]}
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            className="theme-toggle"
+            onClick={toggleTheme}
+            title={theme === 'dark' ? t('theme_to_light') : t('theme_to_dark')}
+            aria-label={theme === 'dark' ? t('theme_to_light') : t('theme_to_dark')}
+          >
+            {theme === 'dark' ? t('theme_btn_light') : t('theme_btn_dark')}
+          </button>
+        </div>
       </div>
     </div>
   );
