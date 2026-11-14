@@ -23,6 +23,7 @@ import { useToast } from '../lib/ToastContext';
 import { useLang } from '../lib/LangContext';
 import { formatPublishedAt, usdtToHkd, USDT_TO_HKD_RATE, toEmbedUrl } from '../lib/format';
 import RichTextEditor from '../components/RichTextEditor';
+import BroadcastTab from './BroadcastTab';
 import {
   LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
@@ -49,6 +50,7 @@ export default function Admin() {
           ['invites', '邀請連結'],
           ['stats', '數據圖表'],
           ['gdrive', 'Google Drive 名單'],
+          ['broadcast', '群發電郵'],
         ].map(([key, label]) => (
           <button
             key={key}
@@ -68,6 +70,7 @@ export default function Admin() {
       {tab === 'invites' && <InviteLinksTab />}
       {tab === 'stats' && <StatsTab />}
       {tab === 'gdrive' && <GdriveListTab />}
+      {tab === 'broadcast' && <BroadcastTab />}
     </div>
   );
 }
