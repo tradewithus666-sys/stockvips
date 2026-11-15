@@ -44,9 +44,11 @@ export async function reorderProducts(items) {
 }
 
 /* ---------- 文章 ---------- */
+// 文章列表只讀 articles_public（沒有 blocks 正文的檢視表），所以沒有權限的人也看得到標題當預覽，
+// 但拿不到正文。正文只能從 articles 表讀，由資料庫的 RLS 判斷是否有有效權限。
 export async function fetchArticlesByProduct(productId) {
   const { data, error } = await supabase
-    .from('articles')
+    .from('articles_public')
     .select('*')
     .eq('product_id', productId)
     .order('published_at', { ascending: false })
@@ -401,13 +403,26 @@ export async function toggleFavoriteArticle({ memberId, articleId, isFavorite })
 }
 
 export async function fetchMyFavoriteArticles(memberId) {
-  const { data, error } = await supabase
+  const { data: favs, error } = await supabase
     .from('article_favorites')
-    .select('created_at, articles(*, products(name))')
+    .select('created_at, article_id')
     .eq('member_id', memberId)
     .order('created_at', { ascending: false });
   if (error) throw error;
-  return data.map((r) => r.articles).filter(Boolean);
+  if (!favs.length) return [];
+  // 從 articles_public 讀標題（過期會員的收藏也能看到標題），產品名稱另外查
+  const { data: arts, error: e2 } = await supabase
+    .from('articles_public')
+    .select('*')
+    .in('id', favs.map((f) => f.article_id));
+  if (e2) throw e2;
+  const productIds = [...new Set(arts.map((a) => a.product_id).filter(Boolean))];
+  const { data: prods } = productIds.length
+    ? await supabase.from('products').select('id, name').in('id', productIds)
+    : { data: [] };
+  const nameById = Object.fromEntries((prods || []).map((p) => [p.id, p.name]));
+  const byId = Object.fromEntries(arts.map((a) => [a.id, { ...a, products: { name: nameById[a.product_id] } }]));
+  return favs.map((f) => byId[f.article_id]).filter(Boolean);
 }
 
 /* ---------- 邀请连结（分享连结自动开通权限） ---------- */

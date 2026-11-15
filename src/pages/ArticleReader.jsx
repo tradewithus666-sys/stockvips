@@ -25,7 +25,13 @@ export default function ArticleReader() {
     let mounted = true;
     async function load() {
       setLoading(true);
-      const { data: a } = await supabase.from('articles').select('*').eq('id', id).single();
+      // 先試著讀完整文章（含正文）：資料庫只會在你有有效權限（或是管理員）時才回傳。
+      // 讀不到的話，改讀只有標題、沒有正文的 articles_public，顯示「需要續費／購買」的鎖定畫面。
+      let { data: a } = await supabase.from('articles').select('*').eq('id', id).maybeSingle();
+      if (!a) {
+        const { data: pub } = await supabase.from('articles_public').select('*').eq('id', id).maybeSingle();
+        a = pub ? { ...pub, blocks: [] } : null;
+      }
       if (!mounted || !a) { setLoading(false); return; }
       setArticle(a);
       setProductId(a.product_id);
