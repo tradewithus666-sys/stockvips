@@ -1,23 +1,17 @@
 // src/pages/PurchaseRecordsTab.jsx
 //
-// 後台「購買記錄」分頁：按日期（香港時間）查看會員在網頁上自行
+// 後台「購買記錄」分頁：由新到舊列出會員在網頁上自行
 //   1. 購買（用餘額購買／續費，來自 purchases 表）
 //   2. 增值（成功的充值，來自 wallet_tx 表）
-// 預設顯示今天，可用日期選擇或「前一天／後一天」切換。管理員在後台直接開通權限不會出現在這裡。
+// 管理員在後台直接開通權限不會出現在這裡。每次顯示最新 30 筆，按「載入更多」再往前看。
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../supabaseClient';
 import { usdtToHkd } from '../lib/format';
 
-const DUR_TEXT = { month: '月費', quarter: '季費', year: '年費' };
+const PAGE = 30;
+const DUR_TEXT = { month: '月費', quarter: '季費', year: '年費', lifetime: '買斷' };
 
-function hkToday() {
-  return new Date(Date.now() + 8 * 3600 * 1000).toISOString().slice(0, 10);
-}
-function addDays(dateStr, n) {
-  const [y, m, d] = dateStr.split('-').map(Number);
-  return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10);
-}
 function hkDateTime(iso) {
   return new Date(iso).toLocaleString('sv-SE', { timeZone: 'Asia/Hong_Kong' }); // 2026-11-15 13:05:22
 }
@@ -26,26 +20,23 @@ function money(n) {
 }
 
 export default function PurchaseRecordsTab() {
-  const [date, setDate] = useState(hkToday());
+  const [limit, setLimit] = useState(PAGE);
   const [rows, setRows] = useState([]);
+  const [hasMore, setHasMore] = useState(false);
   const [filter, setFilter] = useState('all'); // all | purchase | recharge
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const load = useCallback(async (d) => {
+  const load = useCallback(async (n) => {
     setLoading(true);
     setError(null);
     try {
-      const start = `${d}T00:00:00+08:00`;
-      const end = `${addDays(d, 1)}T00:00:00+08:00`;
       const [puRes, txRes] = await Promise.all([
         supabase.from('purchases').select('*, products(name)')
-          .gte('purchased_at', start).lt('purchased_at', end)
-          .order('purchased_at', { ascending: false }).limit(1000),
+          .order('purchased_at', { ascending: false }).limit(n),
         supabase.from('wallet_tx').select('*')
           .eq('status', 'success')
-          .gte('created_at', start).lt('created_at', end)
-          .order('created_at', { ascending: false }).limit(1000),
+          .order('created_at', { ascending: false }).limit(n),
       ]);
       if (puRes.error) throw puRes.error;
       if (txRes.error) throw txRes.error;
@@ -75,41 +66,30 @@ export default function PurchaseRecordsTab() {
         label: '增值 USDT',
         amount: Number(r.amount || 0),
       }));
-      setRows([...purchases, ...recharges].sort((a, b) => new Date(b.time) - new Date(a.time)));
+      // 兩個來源各取最新 n 筆，合併後最新的 n 筆一定都在裡面
+      const merged = [...purchases, ...recharges].sort((a, b) => new Date(b.time) - new Date(a.time));
+      setRows(merged.slice(0, n));
+      setHasMore((puRes.data || []).length >= n || (txRes.data || []).length >= n);
     } catch (e) {
       setError(e.message || String(e));
       setRows([]);
+      setHasMore(false);
     } finally {
       setLoading(false);
     }
   }, []);
 
-  useEffect(() => { load(date); }, [date, load]);
-
-  const summary = useMemo(() => {
-    const s = { purchase: { n: 0, sum: 0 }, recharge: { n: 0, sum: 0 } };
-    rows.forEach((r) => { s[r.kind].n += 1; s[r.kind].sum += r.amount; });
-    return s;
-  }, [rows]);
+  useEffect(() => { load(limit); }, [limit, load]);
 
   const shown = rows.filter((r) => filter === 'all' || r.kind === filter);
-  const isToday = date === hkToday();
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
-        <button className="btn btn-ghost btn-sm" onClick={() => setDate(addDays(date, -1))}>◀ 前一天</button>
-        <input
-          type="date"
-          value={date}
-          max={hkToday()}
-          onChange={(e) => e.target.value && setDate(e.target.value)}
-          style={{ maxWidth: 170 }}
-        />
-        <button className="btn btn-ghost btn-sm" disabled={isToday} onClick={() => setDate(addDays(date, 1))}>後一天 ▶</button>
-        {!isToday && <button className="btn btn-ghost btn-sm" onClick={() => setDate(hkToday())}>回到今天</button>}
-        <button className="btn btn-ghost btn-sm" disabled={loading} onClick={() => load(date)}>{loading ? '載入中…' : '重新整理'}</button>
-        <span style={{ color: 'var(--muted)', fontSize: 12.5 }}>香港時間 {date}{isToday ? '（今天）' : ''}</span>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14 }}>
+        {[['all', '全部'], ['purchase', '只看購買'], ['recharge', '只看增值']].map(([k, label]) => (
+          <button key={k} className={filter === k ? 'btn btn-amber btn-sm' : 'btn btn-ghost btn-sm'} onClick={() => setFilter(k)}>{label}</button>
+        ))}
+        <button className="btn btn-ghost btn-sm" disabled={loading} onClick={() => load(limit)}>{loading ? '載入中…' : '重新整理'}</button>
       </div>
 
       {error && (
@@ -121,49 +101,43 @@ export default function PurchaseRecordsTab() {
         </div>
       )}
 
-      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
-        <div className="form-panel" style={{ flex: '1 1 200px', margin: 0 }}>
-          <div style={{ color: 'var(--muted)', fontSize: 12.5 }}>購買（{summary.purchase.n} 筆）</div>
-          <div className="price" style={{ fontSize: 22 }}>{money(summary.purchase.sum)} USDT</div>
-          <div className="fx-hint" style={{ marginLeft: 0 }}>≈ {usdtToHkd(summary.purchase.sum)} HKD</div>
-        </div>
-        <div className="form-panel" style={{ flex: '1 1 200px', margin: 0 }}>
-          <div style={{ color: 'var(--muted)', fontSize: 12.5 }}>增值（{summary.recharge.n} 筆）</div>
-          <div className="price" style={{ fontSize: 22 }}>{money(summary.recharge.sum)} USDT</div>
-          <div className="fx-hint" style={{ marginLeft: 0 }}>≈ {usdtToHkd(summary.recharge.sum)} HKD</div>
-        </div>
-      </div>
-
-      <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-        {[['all', '全部'], ['purchase', '只看購買'], ['recharge', '只看增值']].map(([k, label]) => (
-          <button key={k} className={filter === k ? 'btn btn-amber btn-sm' : 'btn btn-ghost btn-sm'} onClick={() => setFilter(k)}>{label}</button>
-        ))}
-      </div>
-
       <div className="form-panel">
-        {!loading && shown.length === 0 ? (
-          <div className="empty">這一天沒有記錄。</div>
-        ) : (
-          <div className="table-scroll">
-            <table>
-              <thead>
-                <tr><th>日期時間</th><th>類型</th><th>會員</th><th>項目</th><th style={{ textAlign: 'right' }}>金額</th></tr>
-              </thead>
-              <tbody>
-                {shown.map((r) => (
-                  <tr key={r.key}>
-                    <td className="mono" style={{ whiteSpace: 'nowrap' }}>{hkDateTime(r.time)}</td>
-                    <td><span className={`pill ${r.kind === 'recharge' ? '' : 'off'}`}>{r.kind === 'recharge' ? '增值' : '購買'}</span></td>
-                    <td>{r.email}</td>
-                    <td>{r.label}</td>
-                    <td className="mono" style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
-                      {r.kind === 'recharge' ? '+' : ''}{money(r.amount)} USDT
-                      <div className="fx-hint" style={{ marginLeft: 0 }}>≈ {usdtToHkd(r.amount)} HKD</div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        {!loading && shown.length === 0 && <div className="empty">目前沒有記錄。</div>}
+
+        {shown.map((r) => (
+          <div
+            key={r.key}
+            style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, padding: '14px 0', borderBottom: '1px solid var(--line)' }}
+          >
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <span
+                  className="pill"
+                  style={r.kind === 'recharge'
+                    ? { color: 'var(--green)', background: 'var(--green-tint)', whiteSpace: 'nowrap' }
+                    : { color: 'var(--amber)', background: 'var(--amber-tint)', whiteSpace: 'nowrap' }}
+                >
+                  {r.kind === 'recharge' ? '增值' : '購買'}
+                </span>
+                <span className="mono" style={{ fontSize: 12.5, color: 'var(--muted)' }}>{hkDateTime(r.time)}</span>
+              </div>
+              <div style={{ fontWeight: 600, marginTop: 6, wordBreak: 'break-word' }}>{r.label}</div>
+              <div style={{ color: 'var(--muted)', fontSize: 12.5, marginTop: 2, wordBreak: 'break-all' }}>{r.email}</div>
+            </div>
+            <div style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+              <div className="mono" style={{ fontWeight: 700, color: r.kind === 'recharge' ? 'var(--green)' : 'var(--text)' }}>
+                {r.kind === 'recharge' ? '+' : ''}{money(r.amount)} USDT
+              </div>
+              <div style={{ color: 'var(--muted)', fontSize: 12, marginTop: 2 }}>≈ {usdtToHkd(r.amount)} HKD</div>
+            </div>
+          </div>
+        ))}
+
+        {hasMore && (
+          <div style={{ textAlign: 'center', paddingTop: 16 }}>
+            <button className="btn btn-ghost" disabled={loading} onClick={() => setLimit(limit + PAGE)}>
+              {loading ? '載入中…' : '載入更多'}
+            </button>
           </div>
         )}
       </div>
