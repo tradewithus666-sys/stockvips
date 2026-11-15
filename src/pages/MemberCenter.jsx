@@ -110,6 +110,7 @@ export default function MemberCenter() {
   const [gdriveEmailInput, setGdriveEmailInput] = useState('');
   const [gdriveEmailBusy, setGdriveEmailBusy] = useState(false);
   const [telegramProductIds, setTelegramProductIds] = useState(new Set());
+  const [showAccount, setShowAccount] = useState(false); // 錢包／設備／Telegram／Google Drive 區塊預設摺疊
   const [loading, setLoading] = useState(true);
   const [renewingId, setRenewingId] = useState(null);
   const [renewDuration, setRenewDuration] = useState('month');
@@ -257,7 +258,24 @@ export default function MemberCenter() {
       </div>
       <div className="info-card">
         <div className="who"><b>{profile?.email}</b><span>{t('joined_label')}{profile?.created_at?.slice(0, 10)}</span></div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+        {/* 摺疊按鈕：點擊後才展開錢包、設備、Telegram、Google Drive。
+            如果還有事情沒設定（Telegram 未連結、Google Drive Email 未填），右邊會有一個小圓點提醒 */}
+        <button
+          type="button"
+          className="btn btn-ghost btn-sm"
+          aria-expanded={showAccount}
+          onClick={() => setShowAccount((v) => !v)}
+          style={{ marginTop: 14, display: 'inline-flex', alignItems: 'center', gap: 8 }}
+        >
+          <span>{t('account_details')}</span>
+          {(!telegramBinding?.bound || !profile?.google_drive_email) && (
+            <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--amber)', display: 'inline-block' }} />
+          )}
+          <span style={{ display: 'inline-block', transition: 'transform .2s', transform: showAccount ? 'rotate(180deg)' : 'none' }}>▾</span>
+        </button>
+
+        {showAccount && (<>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginTop: 14 }}>
           <button className="btn btn-amber btn-sm" onClick={() => nav('/wallet')}>
             💰 {t('my_wallet')} <span style={{ opacity: 0.8, fontWeight: 600 }}>· {(profile?.balance ?? 0).toFixed(2)} USDT</span>
           </button>
@@ -299,6 +317,7 @@ export default function MemberCenter() {
             </div>
           )}
         </div>
+        </>)}
       </div>
 
       {announcements.length > 0 && (
