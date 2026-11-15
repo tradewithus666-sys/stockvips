@@ -173,18 +173,18 @@ export default function ProductDetail() {
                             className={`dur-opt wide ${selectedOption === idx ? 'active' : ''}`}
                             onClick={() => setSelectedOption(idx)}
                           >
-                            {opt.name} <small>${opt.price} USDT <span className="fx-hint">≈{usdtToHkd(opt.price)}</span></small>
+                            {opt.name} <small>{usdtToHkd(opt.price)} HKD <span className="fx-hint">≈ ${opt.price} USDT</span></small>
                           </div>
                         ))}
                       </div>
                     )}
-                    <div className="price-row"><b>${price}.00 USDT</b><span className="fx-hint">≈ {usdtToHkd(price)} HKD</span><span>{t('per_lifetime')}</span></div>
+                    <div className="price-row"><b>{usdtToHkd(price)} HKD</b><span className="fx-hint">≈ ${price}.00 USDT</span><span>{t('per_lifetime')}</span></div>
                     <div className="lifetime-badge">{t('lifetime_badge')}</div>
                   </>
                 ) : (
                   <>
                     <div className="price-row">
-                      <b>${price}.00 USDT</b> <span className="fx-hint">≈ {usdtToHkd(price)} HKD</span>
+                      <b>{usdtToHkd(price)} HKD</b> <span className="fx-hint">≈ ${price}.00 USDT</span>
                       <span>／{DUR_LABEL[duration]}</span>
                     </div>
                     <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 12, fontWeight: 600 }}>
@@ -197,7 +197,7 @@ export default function ProductDetail() {
                           className={`dur-opt ${d === 'year' ? 'wide' : ''} ${duration === d ? 'active' : ''}`}
                           onClick={() => setDuration(d)}
                         >
-                          {DUR_LABEL[d]} <small>${getDurationPrice(product, d)} USDT <span className="fx-hint">≈{usdtToHkd(getDurationPrice(product, d))}</span></small>
+                          {DUR_LABEL[d]} <small>{usdtToHkd(getDurationPrice(product, d))} HKD <span className="fx-hint">≈ ${getDurationPrice(product, d)} USDT</span></small>
                         </div>
                       ))}
                     </div>

@@ -126,7 +126,8 @@ export default function MemberCenter() {
       .then(async ([p, pu]) => {
         setPerms(p);
         setPurchases(pu);
-        const subs = p.filter((pm) => pm.products?.type === 'subscription' && !isExpired(pm.expires_at));
+        // 已過期的訂閱也要抓最新文章標題，當作「預覽」吸引會員續費（點進去會提示續費，不會開啟內容）
+        const subs = p.filter((pm) => pm.products?.type === 'subscription');
         const entries = await Promise.all(subs.map(async (pm) => {
           const list = await fetchArticlesByProduct(pm.product_id);
           return [pm.product_id, list.slice(0, 3)];
@@ -225,23 +226,32 @@ export default function MemberCenter() {
             <div className="dur-grid">
               {['month', 'quarter', 'year'].map((d) => (
                 <div key={d} className={`dur-opt ${d === 'year' ? 'wide' : ''} ${renewDuration === d ? 'active' : ''}`} onClick={() => setRenewDuration(d)}>
-                  {DUR_LABEL[d]} <small>${getDurationPrice(pm.products, d)} USDT <span className="fx-hint">≈{usdtToHkd(getDurationPrice(pm.products, d))}</span></small>
+                  {DUR_LABEL[d]} <small>{usdtToHkd(getDurationPrice(pm.products, d))} HKD <span className="fx-hint">≈ ${getDurationPrice(pm.products, d)} USDT</span></small>
                 </div>
               ))}
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
-              <div className="price" style={{ fontSize: 20 }}>${getDurationPrice(pm.products, renewDuration)}.00 USDT <span className="fx-hint">≈{usdtToHkd(getDurationPrice(pm.products, renewDuration))} HKD</span></div>
+              <div className="price" style={{ fontSize: 20 }}>{usdtToHkd(getDurationPrice(pm.products, renewDuration))} HKD <span className="fx-hint">≈ ${getDurationPrice(pm.products, renewDuration)}.00 USDT</span></div>
               <button className="btn btn-amber btn-sm" disabled={busy} onClick={() => confirmRenew(pm)}>{t('confirm_renew_btn')}</button>
             </div>
           </div>
         )}
 
-        {isSub && !expired && (
+        {isSub && (
           <div style={{ marginTop: 12, borderTop: '1px solid var(--line)', paddingTop: 10 }}>
             {articles.length ? articles.map((a) => (
-              <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0', cursor: 'pointer' }} onClick={() => nav(`/article/${a.id}`)}>
+              <div
+                key={a.id}
+                style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0', cursor: 'pointer' }}
+                onClick={() => {
+                  if (!expired) { nav(`/article/${a.id}`); return; }
+                  // 已過期：不開啟文章，提示續費並直接展開續費面板
+                  showToast(t('expired_read_prompt'));
+                  if (!isPermanent) { setRenewingId(pm.id); setRenewDuration('month'); }
+                }}
+              >
                 <span className="art-date">{formatPublishedDateOnly(a)}</span>
-                <span style={{ fontSize: 13, color: 'var(--text)' }}>{a.title}</span>
+                <span style={{ fontSize: 13, color: 'var(--text)' }}>{expired ? '🔒 ' : ''}{a.title}</span>
               </div>
             )) : <div style={{ fontSize: 12, color: 'var(--muted)', padding: '4px 0' }}>{t('no_articles_for_product')}</div>}
           </div>

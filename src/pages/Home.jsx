@@ -151,7 +151,7 @@ export default function Home() {
                     )}
                     <div className="card-foot">
                       <div className="price">
-                        ${p.price} USDT <span className="fx-hint">≈ {usdtToHkd(p.price)} HKD</span>
+                        {usdtToHkd(p.price)} HKD <span className="fx-hint">≈ ${p.price} USDT</span>
                         <span>{p.type === 'course' ? t('price_suffix_course') : t('price_suffix_month')}</span>
                       </div>
                       {p.status === 'off'
