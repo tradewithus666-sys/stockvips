@@ -44,6 +44,9 @@ export default function App() {
     function saveScroll() {
       clearTimeout(saveTimer);
       saveTimer = setTimeout(() => {
+        // 页面正在显示「载入中」时内容很短，浏览器会把捲动位置夹回 0，
+        // 这时候不能把 0 存进去，否则原本记住的位置就被覆盖掉了
+        if (document.querySelector('.loading-screen')) return;
         sessionStorage.setItem(`scrollpos:${location.pathname}`, String(window.scrollY));
       }, 150);
     }
@@ -60,14 +63,23 @@ export default function App() {
     const y = Number(saved);
     if (!y) return;
     let attempts = 0;
+    // 内容（文章、图片）可能要几秒才载入完，所以最多等约 8 秒；
+    // 使用者一旦自己开始滑动或点击，就立刻停止，不跟使用者抢捲动
+    const stop = () => clearInterval(timer);
     const timer = setInterval(() => {
       attempts += 1;
-      window.scrollTo(0, y);
-      if (document.body.scrollHeight > y + window.innerHeight || attempts > 10) {
+      if (!document.querySelector('.loading-screen')) window.scrollTo(0, y);
+      if ((document.body.scrollHeight > y + window.innerHeight && !document.querySelector('.loading-screen')) || attempts > 80) {
         clearInterval(timer);
       }
     }, 100);
-    return () => clearInterval(timer);
+    window.addEventListener('touchstart', stop, { once: true, passive: true });
+    window.addEventListener('wheel', stop, { once: true, passive: true });
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener('touchstart', stop);
+      window.removeEventListener('wheel', stop);
+    };
   }, [location.pathname]);
 
   useEffect(() => {

@@ -44,7 +44,7 @@ export default function ArticleReader() {
     }
     load();
     return () => { mounted = false; };
-  }, [id, user]);
+  }, [id, user?.id]); // 只看 user.id：同一个人的背景续期不会重新载入页面
 
   // 全萤幕检视 PDF 时，锁住背景页面不能捲动，避免手指滑 PDF 时不小心带动外层页面一起动
   useEffect(() => {

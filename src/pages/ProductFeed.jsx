@@ -44,7 +44,7 @@ export default function ProductFeed() {
     }
     load();
     return () => { mounted = false; };
-  }, [id, user]);
+  }, [id, user?.id]); // 只看 user.id：同一个人的背景续期不会重新载入页面
 
   async function handleToggleFavorite(e, articleId) {
     e.stopPropagation();

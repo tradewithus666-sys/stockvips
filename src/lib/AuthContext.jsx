@@ -99,6 +99,18 @@ export function AuthProvider({ children }) {
       if (event === 'TOKEN_REFRESHED' && newUserId === prevUserIdRef.current) {
         return;
       }
+      // 【本次新增】同一个人、非 Google 登入流程的 SIGNED_IN 事件，同样只是背景恢复：
+      // 从 TradingView 等别的分页/App 切回来时，Supabase 常常会补发一次 SIGNED_IN，
+      // 如果照常 setSession(新物件)，全站依赖 user 的页面就会重新载入、闪一下「载入中」，
+      // 页面高度瞬间变短，捲动位置就被浏览器重置回最上面。所以这里一样直接跳过。
+      if (
+        event === 'SIGNED_IN' &&
+        newUserId &&
+        newUserId === prevUserIdRef.current &&
+        !sessionStorage.getItem(OAUTH_PENDING_KEY)
+      ) {
+        return;
+      }
       prevUserIdRef.current = newUserId;
 
       setSession(newSession);

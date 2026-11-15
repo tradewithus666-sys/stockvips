@@ -65,7 +65,7 @@ export default function ProductDetail() {
     }
     load();
     return () => { mounted = false; };
-  }, [id, user]);
+  }, [id, user?.id]); // 只看 user.id：同一个人的背景续期不会重新载入页面
 
   if (loading) return <div className="loading-screen">{t('loading')}</div>;
   if (!product) return <div className="empty">{t('product_not_found')}</div>;
