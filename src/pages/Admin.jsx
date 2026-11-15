@@ -25,6 +25,7 @@ import { useLang } from '../lib/LangContext';
 import { formatPublishedAt, usdtToHkd, USDT_TO_HKD_RATE, toEmbedUrl } from '../lib/format';
 import RichTextEditor from '../components/RichTextEditor';
 import BroadcastTab from './BroadcastTab';
+import PurchaseRecordsTab from './PurchaseRecordsTab';
 import {
   LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
@@ -53,6 +54,7 @@ export default function Admin() {
           ['gdrive', 'Google Drive 名單'],
           ['broadcast', '群發電郵'],
 	  ['reminders', '續費提醒'],
+          ['purchases', '購買記錄'],
         ].map(([key, label]) => (
           <button
             key={key}
@@ -74,6 +76,7 @@ export default function Admin() {
       {tab === 'gdrive' && <GdriveListTab />}
       {tab === 'broadcast' && <BroadcastTab />}
       {tab === 'reminders' && <RemindersTab />}
+      {tab === 'purchases' && <PurchaseRecordsTab />}
     </div>
   );
 }
@@ -561,19 +564,25 @@ function AnnouncementsTab() {
 /* ---------------- 操作教学内容管理 ---------------- */
 function HelpTab() {
   const [body, setBody] = useState('');
+  const [bodyEn, setBodyEn] = useState('');
+  const [editLang, setEditLang] = useState('zh'); // zh | en
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const showToast = useToast();
   const { t } = useLang();
 
   useEffect(() => {
-    fetchHelpContent().then((data) => { setBody(data?.body || ''); setLoading(false); });
+    fetchHelpContent().then((data) => {
+      setBody(data?.body || '');
+      setBodyEn(data?.body_en || '');
+      setLoading(false);
+    });
   }, []);
 
   async function handleSave() {
     setSaving(true);
     try {
-      await updateHelpContent(body);
+      await updateHelpContent(body, bodyEn);
       showToast(t('toast_help_saved'));
     } catch (err) {
       showToast(err.message);
@@ -585,9 +594,10 @@ function HelpTab() {
   async function handleReset() {
     if (!confirm(t('confirm_reset_help'))) return;
     setBody('');
+    setBodyEn('');
     setSaving(true);
     try {
-      await updateHelpContent('');
+      await updateHelpContent('', '');
       showToast(t('toast_help_reset'));
     } finally {
       setSaving(false);
@@ -599,8 +609,17 @@ function HelpTab() {
   return (
     <div>
       <p style={{ color: 'var(--muted)', fontSize: 12.5, marginBottom: 16 }}>{t('help_edit_hint')}</p>
+      <p style={{ color: 'var(--muted)', fontSize: 12.5, marginBottom: 16 }}>
+        中文內容給繁體／簡體會員看，英文內容給英文介面的會員看。某一語言留空時，會員會看到內建的分步教學。
+      </p>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+        <button className={editLang === 'zh' ? 'btn btn-amber btn-sm' : 'btn btn-ghost btn-sm'} onClick={() => setEditLang('zh')}>中文版</button>
+        <button className={editLang === 'en' ? 'btn btn-amber btn-sm' : 'btn btn-ghost btn-sm'} onClick={() => setEditLang('en')}>English</button>
+      </div>
       <div className="form-panel">
-        <RichTextEditor value={body} onChange={setBody} />
+        {editLang === 'zh'
+          ? <RichTextEditor key="zh" value={body} onChange={setBody} />
+          : <RichTextEditor key="en" value={bodyEn} onChange={setBodyEn} />}
         <div className="row-actions" style={{ marginTop: 14 }}>
           <button className="btn btn-amber" disabled={saving} onClick={handleSave}>{saving ? t('processing') : t('save_btn')}</button>
           <button className="btn btn-ghost" disabled={saving} onClick={handleReset}>{t('reset_to_default_btn')}</button>

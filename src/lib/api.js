@@ -147,8 +147,8 @@ export async function fetchHelpContent() {
   return data;
 }
 
-export async function updateHelpContent(body) {
-  const { data, error } = await supabase.from('help_content').update({ body, updated_at: new Date().toISOString() }).eq('id', 1).select().single();
+export async function updateHelpContent(body, bodyEn = '') {
+  const { data, error } = await supabase.from('help_content').update({ body, body_en: bodyEn, updated_at: new Date().toISOString() }).eq('id', 1).select().single();
   if (error) throw error;
   return data;
 }
